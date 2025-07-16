@@ -6,7 +6,7 @@ import math
 from numpy import typing as npt
 import functools
 from typing import Protocol
-from segmentation import get_segment_masks
+from mce.segmentation import get_segment_masks
 
 logger = logging.getLogger(__name__)
 
@@ -31,18 +31,32 @@ class KuiperNormalizationInterface(Protocol):
         precision_dtype: np.float16 | np.float32 | np.float64,
     ) -> npt.NDArray: ...
 
+def identity_per_segment(
+    predicted_scores: npt.NDArray,
+    labels: npt.NDArray | None = None,
+    sample_weight: npt.NDArray | None = None,
+    segments: npt.NDArray | None = None,
+    precision_dtype: np.float16 | np.float32 | np.float64 = DEFAULT_PRECISION_DTYPE,
+) -> npt.NDArray:
+    if segments is None:
+        return np.ones(1)
+    return np.ones(segments.shape[0])
+
 
 def _normalization_method_assignment(
     method: str | None,
 ) -> KuiperNormalizationInterface:
     methods = {
         "kuiper_standard_deviation": kuiper_standard_deviation_per_segment,
+        None: identity_per_segment,
     }
     if method not in methods:
         raise ValueError(
             f"Unknown normalization method {method}. Available methods are {methods.keys()}"
         )
     return methods[method]
+
+
 def kuiper_calibration_per_segment(
     labels: npt.NDArray,
     predicted_scores: npt.NDArray,

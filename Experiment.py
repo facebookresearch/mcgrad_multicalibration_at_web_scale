@@ -133,7 +133,7 @@ class Experiment:
         # evaluate orig model and mcb model on the given dataset split
         preds = self.model.predict(X)
         (confs, logits) = self.model.predict_proba(X, with_logits=True)
-        original_model_metrics_val = subgroup_metrics(groups, y, confs, preds)
+        original_model_metrics_val = subgroup_metrics(groups, y, confs, preds, X)
 
         # log metrics
         if self.wandb: self.logger.log("ERM", dataset_split_name, original_model_metrics_val)
@@ -153,7 +153,7 @@ class Experiment:
             if alg_type == 'Temp': mcb_confs = mcbp.batch_predict(logits, groups)
             else: mcb_confs = mcbp.batch_predict(confs, groups)
             mcb_preds = np.round(mcb_confs)
-            mcb_metrics = subgroup_metrics(groups, y, mcb_confs, mcb_preds)
+            mcb_metrics = subgroup_metrics(groups, y, mcb_confs, mcb_preds, X)
             
             # log metrics
             if self.wandb: 

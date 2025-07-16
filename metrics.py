@@ -1,12 +1,11 @@
-import numpy as np
+import pandas as pd
 from utils import ConsoleColor
 from relplot import smECE as _smECE
 from prettytable import PrettyTable as pt
 from collections import defaultdict
-import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 import wandb
+from mce.mce import MulticalibrationError, kuiper_calibration_per_segment
 
 
 def binnedECE(f, y):
@@ -31,9 +30,35 @@ def smECE(f, y):
     '''Expected Calibration Error (smoothed)'''
     return _smECE(f, y)
 
+def ecce_perc(f, y):
+    '''Estimated Cumulative Calibration Error'''
+    raw_kuiper = kuiper_calibration_per_segment(labels=y, predicted_scores=f, normalization_method=None)[0]
+    return raw_kuiper / np.mean(y) * 100
 
-def subgroup_metrics(subgroups, targets, positive_class_confs, preds):
+def ecce_sigma(f, y):
+    '''Estimated Cumulative Calibration Error'''
+    return kuiper_calibration_per_segment(labels=y, predicted_scores=f, normalization_method='kuiper_standard_deviation')[0]
+
+
+def subgroup_metrics(subgroups, targets, positive_class_confs, preds, X=None):
     '''return dictionary of groupwise calibration metrics'''
+
+    # Compute the MCE if features are provided
+    df = pd.DataFrame(X)
+    feature_cols = list(df.columns)
+    df['label'] = targets
+    df['score'] = positive_class_confs
+
+    mce = MulticalibrationError(
+        df=df,
+        label_column='label',
+        score_column='score',
+        # The data pre transformed such that all categorical columns are binarized
+        # TODO: this might not be what we want, in that case we need to change the respective
+        #   dataloader function and pass on the original dataset up to here
+        numerical_segment_columns=feature_cols,
+    )
+
     subgroup_metrics = {}
 
     for i, group in enumerate(subgroups):
@@ -46,6 +71,8 @@ def subgroup_metrics(subgroups, targets, positive_class_confs, preds):
                 "acc": 'NA',
                 "ECE": 'NA',
                 "smECE": 'NA',
+                "ECCE_perc": 'NA',
+                "ECCE_sigma": 'NA',
             }
             continue
 
@@ -57,19 +84,30 @@ def subgroup_metrics(subgroups, targets, positive_class_confs, preds):
         group_acc = len(np.where(subgroup_preds == subgroup_targets)[0]) / len(group)
         ece = binnedECE(subgroup_confs, subgroup_targets)
         smece = smECE(subgroup_confs, subgroup_targets)
+        ecce_perc_val = ecce_perc(subgroup_confs, subgroup_targets)
+        ecce_sigma_val = ecce_sigma(subgroup_confs, subgroup_targets)
 
         subgroup_metrics[i] = {
             "size": round(subgroup_frac,4), 
             "acc": round(group_acc,4),
             "ECE": round(ece,4),
-            "smECE": round(smece, 4)}
+            "smECE": round(smece, 4),
+            "ECCE_perc": round(ecce_perc_val, 4),
+            "ECCE_sigma": round(ecce_sigma_val, 4),
+            "MCE_perc": 'NA',
+            "MCE_sigma": 'NA',
+        }
 
     # get aggregate metrics
     agg_metrics = {
         "size": 1.0,
         "acc": round(len(np.where(preds == targets)[0]) / len(targets), 4),
         "ECE": round(binnedECE(positive_class_confs, targets), 4),
-        "smECE": round(smECE(positive_class_confs, targets), 4)
+        "smECE": round(smECE(positive_class_confs, targets), 4),
+        "ECCE_perc": 'NA',
+        "ECCE_sigma": 'NA',
+        "MCE_perc": round(mce.mce, 4),
+        "MCE_sigma": round(mce.mce_sigma_scale, 4),
     }
 
     # add mean subgroup metrics
@@ -77,7 +115,11 @@ def subgroup_metrics(subgroups, targets, positive_class_confs, preds):
         "size": round(np.mean([subgroup_metrics[i]['size'] for i in subgroup_metrics]), 4),
         "acc": round(np.mean([subgroup_metrics[i]['acc'] for i in subgroup_metrics if subgroup_metrics[i]['acc'] != 'NA']), 4),
         "ECE": round(np.mean([subgroup_metrics[i]['ECE'] for i in subgroup_metrics if subgroup_metrics[i]['ECE'] != 'NA']), 4),
-        "smECE": round(np.mean([subgroup_metrics[i]['smECE'] for i in subgroup_metrics if subgroup_metrics[i]['smECE'] != 'NA']), 4)
+        "smECE": round(np.mean([subgroup_metrics[i]['smECE'] for i in subgroup_metrics if subgroup_metrics[i]['smECE'] != 'NA']), 4),
+        "ECCE_perc": 'NA',
+        "ECCE_sigma": 'NA',
+        "MCE_perc": 'NA',
+        "MCE_sigma": 'NA',
     }
 
     # add subgroup max
@@ -85,7 +127,11 @@ def subgroup_metrics(subgroups, targets, positive_class_confs, preds):
         "size": round(np.max([subgroup_metrics[i]['size'] for i in subgroup_metrics]), 4),
         "acc": round(np.max([subgroup_metrics[i]['acc'] for i in subgroup_metrics if subgroup_metrics[i]['acc'] != 'NA']), 4),
         "ECE": round(np.max([subgroup_metrics[i]['ECE'] for i in subgroup_metrics if subgroup_metrics[i]['ECE'] != 'NA']), 4),
-        "smECE": round(np.max([subgroup_metrics[i]['smECE'] for i in subgroup_metrics if subgroup_metrics[i]['smECE'] != 'NA']), 4)
+        "smECE": round(np.max([subgroup_metrics[i]['smECE'] for i in subgroup_metrics if subgroup_metrics[i]['smECE'] != 'NA']), 4),
+        "ECCE_perc": 'NA',
+        "ECCE_sigma": 'NA',
+        "MCE_perc": 'NA',
+        "MCE_sigma": 'NA',
     }
 
     # add subgroup min
@@ -93,7 +139,11 @@ def subgroup_metrics(subgroups, targets, positive_class_confs, preds):
         "size": round(np.min([subgroup_metrics[i]['size'] for i in subgroup_metrics]), 4),
         "acc": round(np.min([subgroup_metrics[i]['acc'] for i in subgroup_metrics if subgroup_metrics[i]['acc'] != 'NA']), 4),
         "ECE": round(np.min([subgroup_metrics[i]['ECE'] for i in subgroup_metrics if subgroup_metrics[i]['ECE'] != 'NA']), 4),
-        "smECE": round(np.min([subgroup_metrics[i]['smECE'] for i in subgroup_metrics if subgroup_metrics[i]['smECE'] != 'NA']), 4)
+        "smECE": round(np.min([subgroup_metrics[i]['smECE'] for i in subgroup_metrics if subgroup_metrics[i]['smECE'] != 'NA']), 4),
+        "ECCE_perc": 'NA',
+        "ECCE_sigma": 'NA',
+        "MCE_perc": 'NA',
+        "MCE_sigma": 'NA',
     }
 
     # subgroup_metrics['mean'] = sg_mean
@@ -107,22 +157,22 @@ def subgroup_metrics(subgroups, targets, positive_class_confs, preds):
 
 def print_metrics(metrics_dict, algorithm="-", postprocess="", split="-", params="-"):
     table = pt()
-    table.field_names = ["Group", "size", 'Acc', 'ECE', 'smECE']
+    table.field_names = ["Group", "size", 'Acc', 'ECE', 'smECE', 'ECCE_perc', 'ECCE_sigma', 'MCE_perc', 'MCE_sigma']
     algorithm_name = algorithm if postprocess == "" else f"{algorithm} + {ConsoleColor.BLUE}{postprocess}{ConsoleColor.END}"
     table.title = f"{algorithm_name} : {ConsoleColor.CYAN}{split}{ConsoleColor.END} : {params}"
     # look among rows (0, ..., n_rows-1) for worst metric value
     n_rows = len(metrics_dict) - 4
-    n_metrics = 3
+    n_metrics = 7
 
     # place values in temp table
-    t = [[group, metrics['size'], metrics['acc'], metrics['ECE'], metrics['smECE']]
+    t = [[group, metrics['size'], metrics['acc'], metrics['ECE'], metrics['smECE'], metrics['ECCE_perc'], metrics['ECCE_sigma'], metrics['MCE_perc'], metrics['MCE_sigma']]
         for group, metrics in metrics_dict.items()]
 
     # track criteria for worst metric across groups
     # metrics assumed to start at column 2 of table
     field_idxs = {table.field_names[i]: i for i in range(2, n_metrics + 2)}
-    worst_criteria = {"Acc": "lt", "ECE": "gt", "smECE": "gt"}
-    worst_idxs = {"Acc": 0, "ECE": 0, "smECE": 0}
+    worst_criteria = {"Acc": "lt", "ECE": "gt", "smECE": "gt", 'ECCE_perc': 'gt', 'ECCE_sigma': 'gt', 'MCE_perc': 'gt', 'MCE_sigma': 'gt'}
+    worst_idxs = {"Acc": 0, "ECE": 0, "smECE": 0, 'ECCE_perc': 0, 'ECCE_sigma': 0, 'MCE_perc': 0, 'MCE_sigma': 0}
 
     # find worst metric across groups
     for i in range(n_rows):
@@ -139,9 +189,9 @@ def print_metrics(metrics_dict, algorithm="-", postprocess="", split="-", params
         for j in range(2, n_metrics + 2):
             metric, val = table.field_names[j], t[i][j]
             if i == worst_idxs[metric]:
-                t[i][j] = f"{ConsoleColor.BOLD}{ConsoleColor.RED}{val:.4f}{ConsoleColor.END}"
+                t[i][j] = f"{ConsoleColor.BOLD}{ConsoleColor.RED}{val}{ConsoleColor.END}"
             else:
-                t[i][j] = f"{val:.4f}"
+                t[i][j] = f"{val}"
     for c, idx in worst_idxs.items():
         t[idx][field_idxs[c]] = f"{ConsoleColor.BOLD}{ConsoleColor.RED}{t[idx][field_idxs[c]]}{ConsoleColor.END}"
 
