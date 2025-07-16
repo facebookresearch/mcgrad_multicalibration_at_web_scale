@@ -1,0 +1,36 @@
+from dataloaders.ACS import load_ACSIncome
+from dataloaders.CreditDefault import load_CreditDefault
+from dataloaders.BankMarketing import load_BankMarketing
+from run_experiment import data_reuse_experiment
+from configs.constants import SEEDS_DEFAULT
+import itertools
+
+def run_mc_industry_experiments():
+
+    models = [
+        'LogisticRegression',
+    ]
+
+    datasets = [
+        'ACSIncome',
+        'CreditDefault',
+        'BankMarketing',
+    ]
+
+    # seeds = SEEDS_DEFAULT
+    seeds = [15]
+
+    # create all combinations of datasets, models, and seeds
+    combs = itertools.product(datasets, models, seeds)
+    for dataset, model, seed in combs:
+        print(f'********** {dataset} {model} seed={seed} **********')
+        data_reuse_experiment(model, dataset, seed, wandb=False)
+
+
+
+if __name__ == "__main__":
+    # load_ACSIncome()
+    # load_CreditDefault()
+    # load_BankMarketing()
+
+    run_mc_industry_experiments()
