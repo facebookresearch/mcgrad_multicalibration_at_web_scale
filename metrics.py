@@ -1,11 +1,14 @@
+
 import pandas as pd
 from utils import ConsoleColor
 from relplot import smECE as _smECE
 from prettytable import PrettyTable as pt
 from collections import defaultdict
+
 import numpy as np
 import wandb
 from mce.mce import MulticalibrationError, kuiper_calibration_per_segment
+
 
 
 def binnedECE(f, y):
@@ -162,6 +165,7 @@ def print_metrics(metrics_dict, algorithm="-", postprocess="", split="-", params
     table.title = f"{algorithm_name} : {ConsoleColor.CYAN}{split}{ConsoleColor.END} : {params}"
     # look among rows (0, ..., n_rows-1) for worst metric value
     n_rows = len(metrics_dict) - 4
+
     n_metrics = 7
 
     # place values in temp table
@@ -171,6 +175,7 @@ def print_metrics(metrics_dict, algorithm="-", postprocess="", split="-", params
     # track criteria for worst metric across groups
     # metrics assumed to start at column 2 of table
     field_idxs = {table.field_names[i]: i for i in range(2, n_metrics + 2)}
+
     worst_criteria = {"Acc": "lt", "ECE": "gt", "smECE": "gt", 'ECCE_perc': 'gt', 'ECCE_sigma': 'gt', 'MCE_perc': 'gt', 'MCE_sigma': 'gt'}
     worst_idxs = {"Acc": 0, "ECE": 0, "smECE": 0, 'ECCE_perc': 0, 'ECCE_sigma': 0, 'MCE_perc': 0, 'MCE_sigma': 0}
 
