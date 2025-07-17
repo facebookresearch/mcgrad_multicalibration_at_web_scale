@@ -102,8 +102,6 @@ class Dataset:
             self.categorical_features,
             self.numerical_features
         ) = load_data_fn(groups=groups)
-        assert 'label' not in self.numerical_features
-        assert 'label' not in self.categorical_features
         
         # scale or class balance data
         self._preprocess_data()

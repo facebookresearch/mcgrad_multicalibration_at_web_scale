@@ -10,7 +10,9 @@ import itertools
 def run_mc_industry_experiments():
 
     models = [
-        'LogisticRegression',
+        'SVM',
+        # 'LogisticRegression',
+        # 'NaiveBayes',
     ]
 
     datasets = [

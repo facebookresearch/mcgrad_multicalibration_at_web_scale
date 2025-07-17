@@ -11,7 +11,7 @@ from relplot import rel_diagram
 import matplotlib.pyplot as plt
 import os
 
-
+MCBOOST_NAME = 'CASMCBoost'
 # One experiment will consist of training some model on a certain split of train/calib,
 # and seeing if multicalibration improves subgroup metrics.
 class Experiment:
@@ -36,7 +36,7 @@ class Experiment:
         self.logger = None
         self.wandb = False
         self.results_storage_path = f"mc_industry_results/dataset={dataset.name}_model={model.name}_seed={calib_seed}.pkl"
-        
+
         if (self.calib_frac > 0 or self.calib_train_overlap > 0):
             (
                 self.X_train, 
@@ -113,6 +113,13 @@ class Experiment:
             mcbp.fit(confs=logits_calib, 
                      labels=self.y_calib, 
                      subgroups=self.groups_calib)
+        elif alg_type == MCBOOST_NAME:
+            mcbp.fit(
+                confs=logits_calib,
+                labels=self.y_calib,
+                subgroups=self.groups_calib,
+                df=self.dataset.df_calib,
+            )
         else:
             mcbp.fit(confs=confs_calib,
                     labels=self.y_calib, 
@@ -211,8 +218,10 @@ class Experiment:
         for (mcbp, alg_type, mcb_params) in self.mcb_models:
             # predict and evaluate for each mcb model we have trained
             # temp scaling needs logits, others need confs
-            if alg_type == 'Temp': mcb_confs = mcbp.batch_predict(logits, groups)
-            else: mcb_confs = mcbp.batch_predict(confs, groups)
+            if alg_type == "Temp":
+                mcb_confs = mcbp.batch_predict(logits, groups, df=df)
+            else:
+                mcb_confs = mcbp.batch_predict(confs, groups, df=df)
             mcb_preds = np.round(mcb_confs)
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
@@ -254,7 +263,7 @@ class Experiment:
             mcb_metrics[self.MCB_ALGO_KEY] = alg_type
             mcb_metrics[self.MCB_ALGO_PARAMS_KEY] = mcb_params
             all_metrics.append(mcb_metrics)
-            
+
             # reliability diagram
             if with_rel_diagram:
                 fig, ax = rel_diagram(mcb_confs, y)
