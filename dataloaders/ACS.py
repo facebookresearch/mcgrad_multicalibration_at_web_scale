@@ -202,5 +202,7 @@ def load_ACSIncome(states=['CA'], drop_features=[], groups='default'):
     # return data
     X = features_df.values
     y = targets_df.values.reshape(-1)
-
-    return X, y, (gps, gp_names)
+    features_df['label'] = y
+    categorical_features = ['COW', 'SCHL', 'MAR', 'OCCP', 'POBP', 'RAC1P', 'RELP']
+    numerical_features = ['AGEP', 'WKHP', 'SEX']
+    return X, y, (gps, gp_names), features_df, categorical_features, numerical_features

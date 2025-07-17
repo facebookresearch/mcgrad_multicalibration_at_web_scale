@@ -43,23 +43,26 @@ def ecce_sigma(f, y):
     return kuiper_calibration_per_segment(labels=y, predicted_scores=f, normalization_method='kuiper_standard_deviation')[0]
 
 
-def subgroup_metrics(subgroups, targets, positive_class_confs, preds, X=None):
+def subgroup_metrics(
+        subgroups,
+        targets,
+        positive_class_confs,
+        preds,
+        df=None,
+        categorical_features=None,
+        numerical_features=None
+):
     '''return dictionary of groupwise calibration metrics'''
 
     # Compute the MCE if features are provided
-    df = pd.DataFrame(X)
-    feature_cols = list(df.columns)
-    df['label'] = targets
     df['score'] = positive_class_confs
 
     mce = MulticalibrationError(
         df=df,
         label_column='label',
         score_column='score',
-        # The data pre transformed such that all categorical columns are binarized
-        # TODO: this might not be what we want, in that case we need to change the respective
-        #   dataloader function and pass on the original dataset up to here
-        numerical_segment_columns=feature_cols,
+        numerical_segment_columns=numerical_features,
+        categorical_segment_columns=categorical_features,
     )
 
     subgroup_metrics = {}
@@ -71,11 +74,11 @@ def subgroup_metrics(subgroups, targets, positive_class_confs, preds, X=None):
         if len(group) <= 1:
             subgroup_metrics[i] = {
                 "size": round(subgroup_frac,4), 
-                "acc": 'NA',
-                "ECE": 'NA',
-                "smECE": 'NA',
-                "ECCE_perc": 'NA',
-                "ECCE_sigma": 'NA',
+                "acc": np.nan,
+                "ECE": np.nan,
+                "smECE": np.nan,
+                "ECCE_perc": np.nan,
+                "ECCE_sigma": np.nan,
             }
             continue
 
@@ -97,8 +100,8 @@ def subgroup_metrics(subgroups, targets, positive_class_confs, preds, X=None):
             "smECE": round(smece, 4),
             "ECCE_perc": round(ecce_perc_val, 4),
             "ECCE_sigma": round(ecce_sigma_val, 4),
-            "MCE_perc": 'NA',
-            "MCE_sigma": 'NA',
+            "MCE_perc": np.nan,
+            "MCE_sigma": np.nan,
         }
 
     # get aggregate metrics
@@ -107,8 +110,8 @@ def subgroup_metrics(subgroups, targets, positive_class_confs, preds, X=None):
         "acc": round(len(np.where(preds == targets)[0]) / len(targets), 4),
         "ECE": round(binnedECE(positive_class_confs, targets), 4),
         "smECE": round(smECE(positive_class_confs, targets), 4),
-        "ECCE_perc": 'NA',
-        "ECCE_sigma": 'NA',
+        "ECCE_perc": round(mce.global_ecce, 4),
+        "ECCE_sigma": round(mce.global_ecce_sigma_scale, 4),
         "MCE_perc": round(mce.mce, 4),
         "MCE_sigma": round(mce.mce_sigma_scale, 4),
     }
@@ -116,37 +119,37 @@ def subgroup_metrics(subgroups, targets, positive_class_confs, preds, X=None):
     # add mean subgroup metrics
     sg_mean = {
         "size": round(np.mean([subgroup_metrics[i]['size'] for i in subgroup_metrics]), 4),
-        "acc": round(np.mean([subgroup_metrics[i]['acc'] for i in subgroup_metrics if subgroup_metrics[i]['acc'] != 'NA']), 4),
-        "ECE": round(np.mean([subgroup_metrics[i]['ECE'] for i in subgroup_metrics if subgroup_metrics[i]['ECE'] != 'NA']), 4),
-        "smECE": round(np.mean([subgroup_metrics[i]['smECE'] for i in subgroup_metrics if subgroup_metrics[i]['smECE'] != 'NA']), 4),
-        "ECCE_perc": 'NA',
-        "ECCE_sigma": 'NA',
-        "MCE_perc": 'NA',
-        "MCE_sigma": 'NA',
+        "acc": round(np.mean([subgroup_metrics[i]['acc'] for i in subgroup_metrics if subgroup_metrics[i]['acc'] != np.nan]), 4),
+        "ECE": round(np.mean([subgroup_metrics[i]['ECE'] for i in subgroup_metrics if subgroup_metrics[i]['ECE'] != np.nan]), 4),
+        "smECE": round(np.mean([subgroup_metrics[i]['smECE'] for i in subgroup_metrics if subgroup_metrics[i]['smECE'] != np.nan]), 4),
+        "ECCE_perc": np.nan,
+        "ECCE_sigma": np.nan,
+        "MCE_perc": np.nan,
+        "MCE_sigma": np.nan,
     }
 
     # add subgroup max
     sg_max = {
         "size": round(np.max([subgroup_metrics[i]['size'] for i in subgroup_metrics]), 4),
-        "acc": round(np.max([subgroup_metrics[i]['acc'] for i in subgroup_metrics if subgroup_metrics[i]['acc'] != 'NA']), 4),
-        "ECE": round(np.max([subgroup_metrics[i]['ECE'] for i in subgroup_metrics if subgroup_metrics[i]['ECE'] != 'NA']), 4),
-        "smECE": round(np.max([subgroup_metrics[i]['smECE'] for i in subgroup_metrics if subgroup_metrics[i]['smECE'] != 'NA']), 4),
-        "ECCE_perc": 'NA',
-        "ECCE_sigma": 'NA',
-        "MCE_perc": 'NA',
-        "MCE_sigma": 'NA',
+        "acc": round(np.max([subgroup_metrics[i]['acc'] for i in subgroup_metrics if subgroup_metrics[i]['acc'] != np.nan]), 4),
+        "ECE": round(np.max([subgroup_metrics[i]['ECE'] for i in subgroup_metrics if subgroup_metrics[i]['ECE'] != np.nan]), 4),
+        "smECE": round(np.max([subgroup_metrics[i]['smECE'] for i in subgroup_metrics if subgroup_metrics[i]['smECE'] != np.nan]), 4),
+        "ECCE_perc": np.nan,
+        "ECCE_sigma": np.nan,
+        "MCE_perc": np.nan,
+        "MCE_sigma": np.nan,
     }
 
     # add subgroup min
     sg_min = {
         "size": round(np.min([subgroup_metrics[i]['size'] for i in subgroup_metrics]), 4),
-        "acc": round(np.min([subgroup_metrics[i]['acc'] for i in subgroup_metrics if subgroup_metrics[i]['acc'] != 'NA']), 4),
-        "ECE": round(np.min([subgroup_metrics[i]['ECE'] for i in subgroup_metrics if subgroup_metrics[i]['ECE'] != 'NA']), 4),
-        "smECE": round(np.min([subgroup_metrics[i]['smECE'] for i in subgroup_metrics if subgroup_metrics[i]['smECE'] != 'NA']), 4),
-        "ECCE_perc": 'NA',
-        "ECCE_sigma": 'NA',
-        "MCE_perc": 'NA',
-        "MCE_sigma": 'NA',
+        "acc": round(np.min([subgroup_metrics[i]['acc'] for i in subgroup_metrics if subgroup_metrics[i]['acc'] != np.nan]), 4),
+        "ECE": round(np.min([subgroup_metrics[i]['ECE'] for i in subgroup_metrics if subgroup_metrics[i]['ECE'] != np.nan]), 4),
+        "smECE": round(np.min([subgroup_metrics[i]['smECE'] for i in subgroup_metrics if subgroup_metrics[i]['smECE'] != np.nan]), 4),
+        "ECCE_perc": np.nan,
+        "ECCE_sigma": np.nan,
+        "MCE_perc": np.nan,
+        "MCE_sigma": np.nan,
     }
 
     # subgroup_metrics['mean'] = sg_mean

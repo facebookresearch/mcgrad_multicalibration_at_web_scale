@@ -93,8 +93,17 @@ class Dataset:
             load_data_fn = load_Camelyon17
         else:
             raise ValueError('Unknown dataset name')
-        
-        self.X, self.y, (self.groups, self.group_names) = load_data_fn(groups=groups)
+
+        (
+            self.X,
+            self.y,
+            (self.groups, self.group_names),
+            self.df,
+            self.categorical_features,
+            self.numerical_features
+        ) = load_data_fn(groups=groups)
+        assert 'label' not in self.numerical_features
+        assert 'label' not in self.categorical_features
         
         # scale or class balance data
         self._preprocess_data()
@@ -137,6 +146,8 @@ class Dataset:
         self.y_calib = self.y[self.calibration_idxs]
         self.X_train_no_calib = self.X[self.train_idxs_no_calib]
         self.y_train_no_calib = self.y[self.train_idxs_no_calib]
+        self.df_calib = self.df.iloc[self.calibration_idxs]
+        self.df_train_no_calib = self.df.iloc[self.train_idxs_no_calib]
 
         # if desired, allow overlap between the training and calibration data
         if train_overlap > 0:
@@ -211,6 +222,7 @@ class Dataset:
                        int(self.n * self.test_size), self.test_split_seed)
         self.X_test = self.X[self.test_idxs]
         self.y_test = self.y[self.test_idxs]
+        self.df_test = self.df.iloc[self.test_idxs]
 
         (
             self.val_idxs, 
@@ -221,9 +233,11 @@ class Dataset:
                        int(self.n * self.val_size), self.val_split_seed)
         self.X_val = self.X[self.val_idxs]
         self.y_val = self.y[self.val_idxs]
+        self.df_val = self.df.iloc[self.val_idxs]
 
         self.X_train = self.X[self.train_idxs]
         self.y_train = self.y[self.train_idxs]
+        self.df_train = self.df.iloc[self.train_idxs]
 
         if self.scale:
             self.X_train, self.X_val, self.X_test = self._scale_data()

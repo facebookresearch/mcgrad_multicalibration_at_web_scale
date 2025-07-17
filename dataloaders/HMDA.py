@@ -228,11 +228,14 @@ def load_processed_HMDA(drop_features=[], groups='default'):
 
     y = df['action_taken'].values
     df = df.drop(columns=['action_taken'])
+    numerical_cols = [c for c in df.columns if c not in categorical_cols]
+    df_out = df.copy()
+    df_out['label'] = y
 
     # one hot encode the categorical columns
     df = pd.get_dummies(df, columns=categorical_cols)
     X = df.values.astype(float)
-    return X, y, (gps, gp_names)
+    return X, y, (gps, gp_names), df_out, categorical_cols, numerical_cols
 
 
 def load_processed_HMDA_no_race():
@@ -327,5 +330,6 @@ def load_HMDA(drop_features=[], groups='default'):
     print('One hot encoding categorical columns')
     df = pd.get_dummies(df, columns=[c for c in categories if c not in drop_features])
     X = df.values.astype(float)
-    
-    return X, y, (gps, group_names)
+    df['label'] = y
+
+    return X, y, (gps, group_names), df, categories, non_categorical_cols

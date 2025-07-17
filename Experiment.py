@@ -1,4 +1,10 @@
+import warnings
+
 import numpy as np
+import pandas as pd
+
+import pathlib
+
 from metrics import subgroup_metrics, print_metrics, Logger
 from mcb_algorithms.mcb import MulticalibrationPredictor
 from relplot import rel_diagram
@@ -9,6 +15,9 @@ import os
 # One experiment will consist of training some model on a certain split of train/calib,
 # and seeing if multicalibration improves subgroup metrics.
 class Experiment:
+    MCB_ALGO_KEY = 'mcb_algorithm'
+    MCB_ALGO_PARAMS_KEY = 'mcb_algorithm_params'
+
     def __init__(self, dataset, model, calib_frac, calib_train_overlap=0, calib_seed=50):
         '''
         Parameters
@@ -26,6 +35,7 @@ class Experiment:
         self.mcb_models = []
         self.logger = None
         self.wandb = False
+        self.results_storage_path = f"mc_industry_results/dataset={dataset.name}_model={model.name}_seed={calib_seed}.pkl"
         
         if (self.calib_frac > 0 or self.calib_train_overlap > 0):
             (
@@ -111,13 +121,16 @@ class Experiment:
         self.mcb_models.append([mcbp, alg_type, params])
 
     def evaluate_val(self, with_rel_diagram=False):
-        self.evaluate_model(self.X_val, self.y_val, self.groups_val, 'validation', with_rel_diagram)
+        self.evaluate_model(self.X_val, self.y_val, self.groups_val, 'validation', with_rel_diagram,
+                            self.dataset.df_val, self.dataset.categorical_features, self.dataset.numerical_features)
 
     def evaluate_test(self, with_rel_diagram=False):
-        self.evaluate_model(self.X_test, self.y_test, self.groups_test, 'test', with_rel_diagram)
+        self.evaluate_model(self.X_test, self.y_test, self.groups_test, 'test', with_rel_diagram,
+                            self.dataset.df_test, self.dataset.categorical_features, self.dataset.numerical_features)
 
     def evaluate_train(self, with_rel_diagram=False):
-        self.evaluate_model(self.X_train, self.y_train, self.groups_train, 'train', with_rel_diagram)
+        self.evaluate_model(self.X_train, self.y_train, self.groups_train, 'train', with_rel_diagram,
+                            self.dataset.df_train, self.dataset.categorical_features, self.dataset.numerical_features)
 
     def evaluate_calib(self, with_rel_diagram=False):
         if len(self.X_calib) == 0:
@@ -127,17 +140,64 @@ class Experiment:
         if self.calib_train_overlap > 0:
             print(f"Calibration split includes {self.calib_train_overlap:.2%} of train set")
         
-        self.evaluate_model(self.X_calib, self.y_calib, self.groups_calib, 'calibration', with_rel_diagram)
-    
-    def evaluate_model(self, X, y, groups, dataset_split_name, with_rel_diagram=False):
+        self.evaluate_model(self.X_calib, self.y_calib, self.groups_calib, 'calibration', with_rel_diagram,
+                            self.dataset.df_calib, self.dataset.categorical_features, self.dataset.numerical_features)
+
+    def _metrics_dict_to_df(self, data):
+
+        # Extract common fields
+        algorithm = data[self.MCB_ALGO_KEY]
+        algorithm_params = data[self.MCB_ALGO_PARAMS_KEY]
+
+        # Extract group entries (filter out non-integer keys)
+        group_rows = [
+            {'group': k, self.MCB_ALGO_KEY: algorithm, self.MCB_ALGO_PARAMS_KEY: algorithm_params, **v}
+            for k, v in data.items() if isinstance(k, int) or k in ['max', 'min', 'mean', 'agg']
+        ]
+
+        return pd.DataFrame(group_rows)
+
+
+    def save_metrics(self, dicts):
+        df = pd.concat([self._metrics_dict_to_df(d) for d in dicts]).reset_index(drop=True).assign(
+            dataset=self.dataset.name,
+            model=self.model.name,
+        )
+        pathlib.Path(self.results_storage_path).parent.mkdir(parents=True, exist_ok=True)
+        df.to_pickle(self.results_storage_path)
+
+    def evaluate_model(
+            self,
+            X,
+            y,
+            groups,
+            dataset_split_name,
+            with_rel_diagram=False,
+            df=None,
+            categorical_columns=None,
+            numerical_columns=None
+    ):
         # evaluate orig model and mcb model on the given dataset split
         preds = self.model.predict(X)
         (confs, logits) = self.model.predict_proba(X, with_logits=True)
-        original_model_metrics_val = subgroup_metrics(groups, y, confs, preds, X)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            original_model_metrics_val = subgroup_metrics(
+                groups,
+                y,
+                confs,
+                preds,
+                df,
+                categorical_columns,
+                numerical_columns
+            )
 
         # log metrics
         if self.wandb: self.logger.log("ERM", dataset_split_name, original_model_metrics_val)
         print_metrics(original_model_metrics_val, algorithm=self.model.name, split=dataset_split_name)
+        original_model_metrics_val[self.MCB_ALGO_KEY] = None
+        original_model_metrics_val[self.MCB_ALGO_PARAMS_KEY] = None
+        all_metrics = [original_model_metrics_val]
 
         # reliability diagram
         if with_rel_diagram:
@@ -147,14 +207,25 @@ class Experiment:
             fig.savefig(f"{dir}/{dataset_split_name}_ERM.pdf")
             plt.close(fig)
 
+        mcb_metrics_all = []
         for (mcbp, alg_type, mcb_params) in self.mcb_models:
             # predict and evaluate for each mcb model we have trained
             # temp scaling needs logits, others need confs
             if alg_type == 'Temp': mcb_confs = mcbp.batch_predict(logits, groups)
             else: mcb_confs = mcbp.batch_predict(confs, groups)
             mcb_preds = np.round(mcb_confs)
-            mcb_metrics = subgroup_metrics(groups, y, mcb_confs, mcb_preds, X)
-            
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                mcb_metrics = subgroup_metrics(
+                    groups,
+                    y,
+                    mcb_confs,
+                    mcb_preds,
+                    df,
+                    categorical_columns,
+                    numerical_columns,
+                )
+
             # log metrics
             if self.wandb: 
                 if alg_type == 'HKRR':
@@ -179,6 +250,10 @@ class Experiment:
             # view
             print_metrics(mcb_metrics, algorithm=self.model.name, 
                           postprocess=alg_type, split=dataset_split_name, params=mcb_params)
+
+            mcb_metrics[self.MCB_ALGO_KEY] = alg_type
+            mcb_metrics[self.MCB_ALGO_PARAMS_KEY] = mcb_params
+            all_metrics.append(mcb_metrics)
             
             # reliability diagram
             if with_rel_diagram:
@@ -187,6 +262,9 @@ class Experiment:
                 os.makedirs(dir, exist_ok=True)
                 fig.savefig(f"{dir}/{dataset_split_name}_{alg_type}.pdf")
                 plt.close(fig)
+
+        # dump metric results to file
+        self.save_metrics(all_metrics)
 
 
     def init_logger(self, config={}, finish=False, project=None, run_name=None):

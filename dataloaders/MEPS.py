@@ -1,10 +1,40 @@
-from utils import href
 from dataloaders.utils.download_utils import download_dataset
 from configs.downloads import req_files, req_urls
 import pandas as pd
 import numpy as np
 import shutil
 import os
+import re
+
+def undo_one_hot_encoding(df):
+    df = df.copy()
+    feature_map = {}
+    reconstructed_features = []
+
+    # Step 1: Identify one-hot encoded columns
+    for col in df.columns:
+        match = re.match(r'^(.+?)=(.+)$', col)
+        if match:
+            feature, value = match.groups()
+            feature_map.setdefault(feature, []).append((col, value))
+
+    # Step 2: Reconstruct original features
+    for feature, col_val_pairs in feature_map.items():
+        cols, values = zip(*col_val_pairs)
+
+        # Create a new column with default NA
+        new_col = pd.Series([pd.NA] * len(df), index=df.index, dtype="object")
+
+        for col, val in zip(cols, values):
+            new_col[df[col] == 1] = val
+
+        df[feature] = new_col
+        reconstructed_features.append(feature)
+
+        # Drop the one-hot columns
+        df.drop(columns=list(cols), inplace=True)
+
+    return df, reconstructed_features
 
 
 def groups_map(features_df, groups='default'):
@@ -184,5 +214,8 @@ def load_MEPS(drop_features=[], groups='default'):
 
     # encode categorical features using get_dummies
     X = df.values
+    df_out, categorical_features = undo_one_hot_encoding(df)
+    numerical_features = [c for c in df_out.columns if c not in categorical_features]
+    df_out['label'] = y
 
-    return X, y, (gps, gp_names)
+    return X, y, (gps, gp_names), df_out, categorical_features, numerical_features

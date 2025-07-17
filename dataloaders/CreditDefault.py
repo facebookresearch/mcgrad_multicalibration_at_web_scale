@@ -153,6 +153,7 @@ def load_CreditDefault(drop_features=[], groups='default'):
     # Load data with pandas
     file_name = 'default of credit card clients.xls'
     df = pd.read_excel(DATA_DIR + file_name, header=1)
+    df_backup = df.copy()
 
     # Extract Y and drop it from the dataframe
     y = df['default payment next month'].values
@@ -183,14 +184,19 @@ def load_CreditDefault(drop_features=[], groups='default'):
 
     # Drop features
     df = df.drop(columns=drop_features)
+    df_out = df.copy()
+    df_out['label'] = y
 
     # the following columns are categorical, so we can one-hot encode them
     categories = ['LIMIT_BAL', 'AGE', 'EDUCATION', 'MARRIAGE', 
                                      'PAY_0', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6',
                                      'BILL_AMT1', 'BILL_AMT2', 'BILL_AMT3', 'BILL_AMT4', 'BILL_AMT5', 'BILL_AMT6',
                                      'PAY_AMT1', 'PAY_AMT2', 'PAY_AMT3', 'PAY_AMT4', 'PAY_AMT5', 'PAY_AMT6']
+    categorical_features = categories
+    numerical_features = [c for c in df.columns if c not in categorical_features]
+
     df = pd.get_dummies(df, columns=[c for c in categories if c not in drop_features])
 
     # Get features as numpy array
     X = df.values.astype(float)
-    return X, y, (gps, gp_names)
+    return X, y, (gps, gp_names), df_out, categorical_features, numerical_features

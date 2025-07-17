@@ -190,7 +190,9 @@ def load_BankMarketing(drop_features=[], groups='default'):
     # encode categorical features using get_dummies
     categories = ['job', 'marital', 'education', 'default', 'housing', 'loan', 'contact', 'month', 'poutcome']
     categorical = [c for c in categories if c in df.columns]
+    numerical = [c for c in df.columns if c not in categorical]
     X = pd.get_dummies(df, columns=categorical, drop_first=True)
     X = X.values.astype(float)
+    df['label'] = y
 
-    return X, y, (gps, gp_names)
+    return X, y, (gps, gp_names), df, categorical, numerical
