@@ -6,7 +6,7 @@ from mcb_algorithms.CAS.CASMCBoost import CASMCBoostAlgorithm
 from mcb_algorithms.HJZ.hjz import HJZAlgorithm
 from mcb_algorithms.HKRR.hkrr import HKRRAlgorithm
 from tqdm import trange
-
+from configs.constants import MCBOOST_NAME
 
 ## MCB algorithm
 class MulticalibrationPredictor:
@@ -35,7 +35,7 @@ class MulticalibrationPredictor:
         else:
             raise ValueError(f"Algorithm {algorithm} not supported")
 
-    def fit(self, confs, labels, subgroups, df=None):
+    def fit(self, confs, labels, subgroups, df=None, categorical_features=None, numerical_features=None):
         """
         Returns vector of confidences on calibration set.
 
@@ -48,12 +48,12 @@ class MulticalibrationPredictor:
             df: Optional dataframe with additional features (required for CASMCBoost with alltogether variant)
         """
         # Only pass df parameter to algorithms that support it (currently only CASMCBoost)
-        if self.algorithm == "CASMCBoost":
-            self.mcbp.fit(confs, labels, subgroups, df)
+        if self.algorithm == MCBOOST_NAME:
+            self.mcbp.fit(confs, labels, subgroups, df, categorical_features=categorical_features, numerical_features=numerical_features)
         else:
             self.mcbp.fit(confs, labels, subgroups)
 
-    def batch_predict(self, f_xs, groups, df=None):
+    def batch_predict(self, f_xs, groups, df=None, categorical_features=None, numerical_features=None):
         """
         Returns calibrated predictions for a batch of data points.
         HKRR: early_stop=None
@@ -64,7 +64,8 @@ class MulticalibrationPredictor:
             df: Optional dataframe with additional features (required for CASMCBoost with alltogether variant)
         """
         # Only pass df parameter to algorithms that support it (currently only CASMCBoost)
-        if self.algorithm == "CASMCBoost":
-            return self.mcbp.batch_predict(f_xs, groups, df)
+        if self.algorithm == MCBOOST_NAME:
+            df['precali_scores'] = f_xs[:, 1]
+            return self.mcbp.batch_predict(f_xs, groups, df, categorical_features=categorical_features, numerical_features=numerical_features)
         else:
             return self.mcbp.batch_predict(f_xs, groups)

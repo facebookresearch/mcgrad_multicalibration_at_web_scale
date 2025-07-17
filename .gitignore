@@ -3,3 +3,6 @@ data/
 .idea/
 eda.ipynb
 mc_industry_results/
+.requirements.txt
+.DS_Store
+

@@ -6,7 +6,7 @@ import math
 from numpy import typing as npt
 import functools
 from typing import Protocol
-from mce.segmentation import get_segment_masks
+from mcb_algorithms.CAS.segmentation import get_segment_masks
 
 logger = logging.getLogger(__name__)
 

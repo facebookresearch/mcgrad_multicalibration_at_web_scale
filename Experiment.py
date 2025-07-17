@@ -5,13 +5,14 @@ import pandas as pd
 
 import pathlib
 
+from configs.constants import MCBOOST_NAME
 from metrics import subgroup_metrics, print_metrics, Logger
 from mcb_algorithms.mcb import MulticalibrationPredictor
 from relplot import rel_diagram
 import matplotlib.pyplot as plt
 import os
 
-MCBOOST_NAME = 'CASMCBoost'
+
 # One experiment will consist of training some model on a certain split of train/calib,
 # and seeing if multicalibration improves subgroup metrics.
 class Experiment:
@@ -44,7 +45,8 @@ class Experiment:
                 self.groups_train, 
                 self.X_calib, 
                 self.y_calib, 
-                self.groups_calib
+                self.groups_calib,
+                self.df_calib
             ) = self.dataset.train_calibration_split(self.calib_frac, 
                                                      train_overlap=calib_train_overlap, 
                                                      seed=calib_seed)
@@ -118,7 +120,9 @@ class Experiment:
                 confs=logits_calib,
                 labels=self.y_calib,
                 subgroups=self.groups_calib,
-                df=self.dataset.df_calib,
+                df=self.df_calib,
+                categorical_features=self.dataset.categorical_features,
+                numerical_features=self.dataset.numerical_features,
             )
         else:
             mcbp.fit(confs=confs_calib,
@@ -220,6 +224,9 @@ class Experiment:
             # temp scaling needs logits, others need confs
             if alg_type == "Temp":
                 mcb_confs = mcbp.batch_predict(logits, groups, df=df)
+            elif alg_type == MCBOOST_NAME:
+                mcb_confs = mcbp.batch_predict(logits, groups, df=df, categorical_features=categorical_columns,
+                                               numerical_features=numerical_columns)
             else:
                 mcb_confs = mcbp.batch_predict(confs, groups, df=df)
             mcb_preds = np.round(mcb_confs)

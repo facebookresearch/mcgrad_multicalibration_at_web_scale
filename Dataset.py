@@ -15,7 +15,7 @@ from imblearn.over_sampling import SMOTE as imbl_smote
 from prettytable import PrettyTable
 import pandas as pd
 import numpy as np
-import torchtext
+# import torchtext
 
 
 class Dataset:
@@ -111,17 +111,17 @@ class Dataset:
         if verbose: print(groups_info_str(self.X, self.y, self.groups, self.group_names))
 
 
-    def vocab(self, tokenizer, max_len, min_freq):
-        """
-        Returns vocabular for text datasets.
-        """
-        assert self.is_text == True, 'Vocab method only associated with language datasets.'
-        tokenized = pd.Series(self.X).apply(lambda x: tokenizer(x)[:max_len])
-        v = torchtext.vocab.build_vocab_from_iterator(tokenized, 
-                                                      min_freq=min_freq, 
-                                                      specials=['<pad>', '<unk>'])
-        v.set_default_index(v['<unk>'])
-        return v
+    # def vocab(self, tokenizer, max_len, min_freq):
+    #     """
+    #     Returns vocabular for text datasets.
+    #     """
+    #     assert self.is_text == True, 'Vocab method only associated with language datasets.'
+    #     tokenized = pd.Series(self.X).apply(lambda x: tokenizer(x)[:max_len])
+    #     v = torchtext.vocab.build_vocab_from_iterator(tokenized,
+    #                                                   min_freq=min_freq,
+    #                                                   specials=['<pad>', '<unk>'])
+    #     v.set_default_index(v['<unk>'])
+    #     return v
         
 
     def train_calibration_split(self, frac, train_overlap=0, seed=43):
@@ -161,6 +161,7 @@ class Dataset:
             self.calibration_idxs = sorted(np.concatenate([self.calibration_idxs, tc_idxs]))
             self.X_calib = self.X[self.calibration_idxs]
             self.y_calib = self.y[self.calibration_idxs]
+            self.df_calib = self.df.iloc[self.calibration_idxs]
 
             # update groups
             self.groups_calib = []
@@ -168,7 +169,7 @@ class Dataset:
                 g_idxs = reindex_group(self.calibration_idxs, group)
                 self.groups_calib.append(g_idxs)
 
-        return self.X_train_no_calib, self.y_train_no_calib, self.groups_train_no_calib, self.X_calib, self.y_calib, self.groups_calib
+        return self.X_train_no_calib, self.y_train_no_calib, self.groups_train_no_calib, self.X_calib, self.y_calib, self.groups_calib, self.df_calib
 
 
     def _preprocess_data(self):

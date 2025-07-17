@@ -7,7 +7,7 @@ from collections import defaultdict
 
 import numpy as np
 import wandb
-from mce.mce import MulticalibrationError, kuiper_calibration_per_segment
+from mcb_algorithms.CAS.metrics import MulticalibrationError, kuiper_calibration_per_segment
 
 
 

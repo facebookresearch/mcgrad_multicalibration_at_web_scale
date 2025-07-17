@@ -10,8 +10,8 @@ import itertools
 def run_mc_industry_experiments():
 
     models = [
-        'SVM',
-        # 'LogisticRegression',
+        # 'SVM',
+        'LogisticRegression',
         # 'NaiveBayes',
     ]
 
@@ -31,7 +31,6 @@ def run_mc_industry_experiments():
     for dataset, model, seed in combs:
         print(f'********** {dataset} {model} seed={seed} **********')
         data_reuse_experiment(model, dataset, seed, wandb=False)
-
 
 
 if __name__ == "__main__":

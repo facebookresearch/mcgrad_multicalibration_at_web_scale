@@ -96,14 +96,16 @@ CALIB_ALGS_DEFAULT = [
     # }
 ]
 
+MCBOOST_NAME = 'CASMCBoost'
+
 # collect all mcb algorithsm
 # MCB_DEFAULT = HKRR_DEFAULT + HJZ_DEFAULT + CALIB_ALGS_DEFAULT
 CASMCBOOST_DEFAULT = [
     {
-        "type": "CASMCBoost",
+        "type": MCBOOST_NAME,
         "params": [
             {
-                "mcboost_variant": "jinetal",
+                "mcboost_variant": "nogroups",
                 "encode_categorical_variables": True,
                 "monotone_t": None,
                 "num_rounds": 100,
@@ -118,7 +120,7 @@ CASMCBOOST_DEFAULT = [
                 "weight_column_name": None,
                 "categorical_feature_column_names": None,
                 "numerical_feature_column_names": None,
-                "auto_infer_column_types": True,
+                "auto_infer_column_types": False,
                 "categorical_threshold": 30,
             }
         ],
