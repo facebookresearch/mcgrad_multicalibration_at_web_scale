@@ -19,6 +19,7 @@ class Experiment:
     MCB_ALGO_KEY = 'mcb_algorithm'
     MCB_ALGO_PARAMS_KEY = 'mcb_algorithm_params'
     SET_NAME_KEY = 'set_name'
+    SEED_KEY = 'seed'
 
     def __init__(self, dataset, model, calib_frac, calib_train_overlap=0, calib_seed=50):
         '''
@@ -161,11 +162,12 @@ class Experiment:
         algorithm = data[self.MCB_ALGO_KEY]
         algorithm_params = data[self.MCB_ALGO_PARAMS_KEY]
         set_name = data[self.SET_NAME_KEY]
+        seed = data[self.SEED_KEY]
 
         # Extract group entries (filter out non-integer keys)
         group_rows = [
             {'group': k, self.MCB_ALGO_KEY: algorithm, self.MCB_ALGO_PARAMS_KEY: algorithm_params,
-             self.SET_NAME_KEY: set_name, **v}
+             self.SET_NAME_KEY: set_name, self.SEED_KEY: seed, **v}
             for k, v in data.items() if isinstance(k, int) or k in ['max', 'min', 'mean', 'agg']
         ]
 
@@ -214,6 +216,7 @@ class Experiment:
         original_model_metrics_val[self.MCB_ALGO_KEY] = None
         original_model_metrics_val[self.MCB_ALGO_PARAMS_KEY] = None
         original_model_metrics_val[self.SET_NAME_KEY] = dataset_split_name
+        original_model_metrics_val[self.SEED_KEY] = self.dataset.val_split_seed
         all_metrics = [original_model_metrics_val]
 
         # reliability diagram
@@ -276,6 +279,7 @@ class Experiment:
             mcb_metrics[self.MCB_ALGO_KEY] = alg_type
             mcb_metrics[self.MCB_ALGO_PARAMS_KEY] = mcb_params
             mcb_metrics[self.SET_NAME_KEY] = dataset_split_name
+            original_model_metrics_val[self.SEED_KEY] = self.dataset.val_split_seed
             all_metrics.append(mcb_metrics)
 
             # reliability diagram
