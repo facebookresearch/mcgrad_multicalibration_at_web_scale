@@ -13,14 +13,15 @@ def run_mc_industry_experiments():
         # 'SVM',
         'LogisticRegression',
         # 'NaiveBayes',
+        # 'RandomForest'
     ]
 
     datasets = [
         'ACSIncome',
-        # 'CreditDefault',
-        # 'BankMarketing',
-        # 'HMDA',
-        # 'MEPS',
+        'CreditDefault',
+        'BankMarketing',
+        'HMDA',
+        'MEPS',
     ]
 
     # seeds = SEEDS_DEFAULT

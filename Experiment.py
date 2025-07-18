@@ -6,7 +6,7 @@ import pandas as pd
 import pathlib
 
 from configs.constants import MCBOOST_NAME
-from metrics import subgroup_metrics, print_metrics, Logger
+from metrics import subgroup_metrics, Logger
 from mcb_algorithms.mcb import MulticalibrationPredictor
 from relplot import rel_diagram
 import matplotlib.pyplot as plt
@@ -200,15 +200,8 @@ class Experiment:
         (confs, logits) = self.model.predict_proba(X, with_logits=True)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            original_model_metrics_val = subgroup_metrics(
-                groups,
-                y,
-                confs,
-                preds,
-                df,
-                categorical_columns,
-                numerical_columns
-            )
+            original_model_metrics_val = subgroup_metrics(groups, y, confs, preds, df, categorical_columns,
+                                                          numerical_columns)
 
         # log metrics
         if self.wandb: self.logger.log("ERM", dataset_split_name, original_model_metrics_val)
@@ -279,7 +272,7 @@ class Experiment:
             mcb_metrics[self.MCB_ALGO_KEY] = alg_type
             mcb_metrics[self.MCB_ALGO_PARAMS_KEY] = mcb_params
             mcb_metrics[self.SET_NAME_KEY] = dataset_split_name
-            original_model_metrics_val[self.SEED_KEY] = self.dataset.val_split_seed
+            mcb_metrics[self.SEED_KEY] = self.dataset.val_split_seed
             all_metrics.append(mcb_metrics)
 
             # reliability diagram

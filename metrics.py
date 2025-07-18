@@ -4,7 +4,7 @@ from utils import ConsoleColor
 from relplot import smECE as _smECE
 from prettytable import PrettyTable as pt
 from collections import defaultdict
-
+from sklearn import metrics as skmetrics
 import numpy as np
 import wandb
 from mcb_algorithms.CAS.metrics import MulticalibrationError, kuiper_calibration_per_segment
@@ -75,6 +75,7 @@ def subgroup_metrics(
             subgroup_metrics[i] = {
                 "size": round(subgroup_frac,4), 
                 "acc": np.nan,
+                "log-loss": np.nan,
                 "ECE": np.nan,
                 "smECE": np.nan,
                 "ECCE_perc": np.nan,
@@ -88,6 +89,9 @@ def subgroup_metrics(
 
         # deterministic metrics
         group_acc = len(np.where(subgroup_preds == subgroup_targets)[0]) / len(group)
+        group_logloss = skmetrics.log_loss(subgroup_targets, subgroup_preds)
+        group_rocauc = skmetrics.roc_auc_score(subgroup_targets, subgroup_preds)
+        group_prauc = skmetrics.average_precision_score(subgroup_targets, subgroup_preds)
         ece = binnedECE(subgroup_confs, subgroup_targets)
         smece = smECE(subgroup_confs, subgroup_targets)
         ecce_perc_val = ecce_perc(subgroup_confs, subgroup_targets)
@@ -96,6 +100,9 @@ def subgroup_metrics(
         subgroup_metrics[i] = {
             "size": round(subgroup_frac,4), 
             "acc": round(group_acc,4),
+            "logloss": round(group_logloss,4),
+            "rocauc": round(group_rocauc,4),
+            "prauc": round(group_prauc,4),
             "ECE": round(ece,4),
             "smECE": round(smece, 4),
             "ECCE_perc": round(ecce_perc_val, 4),
@@ -108,6 +115,9 @@ def subgroup_metrics(
     agg_metrics = {
         "size": 1.0,
         "acc": round(len(np.where(preds == targets)[0]) / len(targets), 4),
+        "logloss": round(skmetrics.log_loss(targets, preds),4),
+        "rocauc": round(skmetrics.roc_auc_score(targets, preds),4),
+        "prauc": round(skmetrics.average_precision_score(targets, preds),4),
         "ECE": round(binnedECE(positive_class_confs, targets), 4),
         "smECE": round(smECE(positive_class_confs, targets), 4),
         "ECCE_perc": round(mce.global_ecce, 4),
@@ -116,41 +126,24 @@ def subgroup_metrics(
         "MCE_sigma": round(mce.mce_sigma_scale, 4),
     }
 
+    def _agg_metric(agg_func, metric_name, sg_metrics):
+        return round(
+            agg_func(
+                [sg_metrics[i][metric_name] for i in sg_metrics if sg_metrics[i][metric_name] != np.nan]
+            ), 4
+        )
     # add mean subgroup metrics
-    sg_mean = {
-        "size": round(np.mean([subgroup_metrics[i]['size'] for i in subgroup_metrics]), 4),
-        "acc": round(np.mean([subgroup_metrics[i]['acc'] for i in subgroup_metrics if subgroup_metrics[i]['acc'] != np.nan]), 4),
-        "ECE": round(np.mean([subgroup_metrics[i]['ECE'] for i in subgroup_metrics if subgroup_metrics[i]['ECE'] != np.nan]), 4),
-        "smECE": round(np.mean([subgroup_metrics[i]['smECE'] for i in subgroup_metrics if subgroup_metrics[i]['smECE'] != np.nan]), 4),
-        "ECCE_perc": np.nan,
-        "ECCE_sigma": np.nan,
-        "MCE_perc": np.nan,
-        "MCE_sigma": np.nan,
-    }
+    all_metrics = ["size", "acc", "logloss", "rocauc", "prauc", "ECE", "smECE", "ECCE_perc", "ECCE_sigma"]
+    sg_mean = {_agg_metric(np.mean, metric_name, subgroup_metrics) for metric_name in all_metrics}
+    sg_mean |= {"MCE_perc": np.nan, "MCE_sigma": np.nan}
 
     # add subgroup max
-    sg_max = {
-        "size": round(np.max([subgroup_metrics[i]['size'] for i in subgroup_metrics]), 4),
-        "acc": round(np.max([subgroup_metrics[i]['acc'] for i in subgroup_metrics if subgroup_metrics[i]['acc'] != np.nan]), 4),
-        "ECE": round(np.max([subgroup_metrics[i]['ECE'] for i in subgroup_metrics if subgroup_metrics[i]['ECE'] != np.nan]), 4),
-        "smECE": round(np.max([subgroup_metrics[i]['smECE'] for i in subgroup_metrics if subgroup_metrics[i]['smECE'] != np.nan]), 4),
-        "ECCE_perc": np.nan,
-        "ECCE_sigma": np.nan,
-        "MCE_perc": np.nan,
-        "MCE_sigma": np.nan,
-    }
+    sg_max = {_agg_metric(np.max, metric_name, subgroup_metrics) for metric_name in all_metrics}
+    sg_max |= {"MCE_perc": np.nan, "MCE_sigma": np.nan}
 
     # add subgroup min
-    sg_min = {
-        "size": round(np.min([subgroup_metrics[i]['size'] for i in subgroup_metrics]), 4),
-        "acc": round(np.min([subgroup_metrics[i]['acc'] for i in subgroup_metrics if subgroup_metrics[i]['acc'] != np.nan]), 4),
-        "ECE": round(np.min([subgroup_metrics[i]['ECE'] for i in subgroup_metrics if subgroup_metrics[i]['ECE'] != np.nan]), 4),
-        "smECE": round(np.min([subgroup_metrics[i]['smECE'] for i in subgroup_metrics if subgroup_metrics[i]['smECE'] != np.nan]), 4),
-        "ECCE_perc": np.nan,
-        "ECCE_sigma": np.nan,
-        "MCE_perc": np.nan,
-        "MCE_sigma": np.nan,
-    }
+    sg_min = {_agg_metric(np.min, metric_name, subgroup_metrics) for metric_name in all_metrics}
+    sg_min |= {"MCE_perc": np.nan, "MCE_sigma": np.nan}
 
     # subgroup_metrics['mean'] = sg_mean
     subgroup_metrics['max'] = sg_max
@@ -159,63 +152,6 @@ def subgroup_metrics(
     subgroup_metrics['agg'] = agg_metrics
 
     return subgroup_metrics
-
-
-def print_metrics(metrics_dict, algorithm="-", postprocess="", split="-", params="-"):
-    table = pt()
-    table.field_names = ["Group", "size", 'Acc', 'ECE', 'smECE', 'ECCE_perc', 'ECCE_sigma', 'MCE_perc', 'MCE_sigma']
-    algorithm_name = algorithm if postprocess == "" else f"{algorithm} + {ConsoleColor.BLUE}{postprocess}{ConsoleColor.END}"
-    table.title = f"{algorithm_name} : {ConsoleColor.CYAN}{split}{ConsoleColor.END} : {params}"
-    # look among rows (0, ..., n_rows-1) for worst metric value
-    n_rows = len(metrics_dict) - 4
-
-    n_metrics = 7
-
-    # place values in temp table
-    t = [[group, metrics['size'], metrics['acc'], metrics['ECE'], metrics['smECE'], metrics['ECCE_perc'], metrics['ECCE_sigma'], metrics['MCE_perc'], metrics['MCE_sigma']]
-        for group, metrics in metrics_dict.items()]
-
-    # track criteria for worst metric across groups
-    # metrics assumed to start at column 2 of table
-    field_idxs = {table.field_names[i]: i for i in range(2, n_metrics + 2)}
-
-    worst_criteria = {"Acc": "lt", "ECE": "gt", "smECE": "gt", 'ECCE_perc': 'gt', 'ECCE_sigma': 'gt', 'MCE_perc': 'gt', 'MCE_sigma': 'gt'}
-    worst_idxs = {"Acc": 0, "ECE": 0, "smECE": 0, 'ECCE_perc': 0, 'ECCE_sigma': 0, 'MCE_perc': 0, 'MCE_sigma': 0}
-
-    # find worst metric across groups
-    for i in range(n_rows):
-        for j in range(2, n_metrics + 2):
-            metric, val = table.field_names[j], t[i][j]
-            # if metric is worse than current worst, update worst
-            if worst_criteria[metric] == "lt" and val < t[worst_idxs[metric]][j]:
-                worst_idxs[metric] = i
-            elif worst_criteria[metric] == "gt" and val > t[worst_idxs[metric]][j]:
-                worst_idxs[metric] = i
-            
-    # color worst metric with red, and reformat numbers
-    for i in range(n_rows):
-        for j in range(2, n_metrics + 2):
-            metric, val = table.field_names[j], t[i][j]
-            if i == worst_idxs[metric]:
-                t[i][j] = f"{ConsoleColor.BOLD}{ConsoleColor.RED}{val}{ConsoleColor.END}"
-            else:
-                t[i][j] = f"{val}"
-    for c, idx in worst_idxs.items():
-        t[idx][field_idxs[c]] = f"{ConsoleColor.BOLD}{ConsoleColor.RED}{t[idx][field_idxs[c]]}{ConsoleColor.END}"
-
-    # # embolden max and agg rows
-    # for r in t:
-    #     if r[0] in ['agg']:
-    #         for i in range(len(r)):
-    #             r[i] = f"{ConsoleColor.BOLD}{r[i]}{ConsoleColor.END}"
-
-    for i, r in enumerate(t):
-        table.add_row(r, divider=(i == len(t) - 5))
-
-    table.align = "l"
-    table.align["Group"] = "r"
-    print(table)
-
 
 class Logger:
     def __init__(self, project, config, run_name=None):
