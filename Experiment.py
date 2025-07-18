@@ -11,6 +11,7 @@ from mcb_algorithms.mcb import MulticalibrationPredictor
 from relplot import rel_diagram
 import matplotlib.pyplot as plt
 import os
+import time
 
 
 # One experiment will consist of training some model on a certain split of train/calib,
@@ -20,6 +21,8 @@ class Experiment:
     MCB_ALGO_PARAMS_KEY = 'mcb_algorithm_params'
     SET_NAME_KEY = 'set_name'
     SEED_KEY = 'seed'
+    FIT_TIME_KEY = 'fit_time'
+    NUM_ROUNDS_KEY = 'num_rounds'
 
     def __init__(self, dataset, model, calib_frac, calib_train_overlap=0, calib_seed=50):
         '''
@@ -113,6 +116,8 @@ class Experiment:
         
         # pass in confidence corresponding to correct class
         # mcb algorithms which require logits will use logits_calib
+        model_properties_to_track = {}
+        fit_start = time.time()
         if alg_type in ['Temp']:
             mcbp.fit(confs=logits_calib, 
                      labels=self.y_calib, 
@@ -126,12 +131,14 @@ class Experiment:
                 categorical_features=self.dataset.categorical_features,
                 numerical_features=self.dataset.numerical_features,
             )
+            model_properties_to_track[self.NUM_ROUNDS_KEY] = len(mcbp.mcboost.mr)
         else:
             mcbp.fit(confs=confs_calib,
                     labels=self.y_calib, 
                     subgroups=self.groups_calib)
-
-        self.mcb_models.append([mcbp, alg_type, params])
+        fit_time = time.time() - fit_start
+        model_properties_to_track[self.FIT_TIME_KEY] = fit_time
+        self.mcb_models.append([mcbp, alg_type, params, model_properties_to_track])
 
     def evaluate_val(self, with_rel_diagram=False):
         self.evaluate_model(self.X_val, self.y_val, self.groups_val, 'validation', with_rel_diagram,
@@ -210,6 +217,8 @@ class Experiment:
         original_model_metrics_val[self.MCB_ALGO_PARAMS_KEY] = None
         original_model_metrics_val[self.SET_NAME_KEY] = dataset_split_name
         original_model_metrics_val[self.SEED_KEY] = self.dataset.val_split_seed
+        original_model_metrics_val[self.FIT_TIME_KEY] = np.nan
+        original_model_metrics_val[self.NUM_ROUNDS_KEY] = np.nan
         all_metrics = [original_model_metrics_val]
 
         # reliability diagram
@@ -221,7 +230,7 @@ class Experiment:
             plt.close(fig)
 
         mcb_metrics_all = []
-        for (mcbp, alg_type, mcb_params) in self.mcb_models:
+        for (mcbp, alg_type, mcb_params, mcb_properties) in self.mcb_models:
             # predict and evaluate for each mcb model we have trained
             # temp scaling needs logits, others need confs
             if alg_type == "Temp":
@@ -273,6 +282,8 @@ class Experiment:
             mcb_metrics[self.MCB_ALGO_PARAMS_KEY] = mcb_params
             mcb_metrics[self.SET_NAME_KEY] = dataset_split_name
             mcb_metrics[self.SEED_KEY] = self.dataset.val_split_seed
+            mcb_metrics[self.FIT_TIME_KEY] = mcb_properties.get(self.FIT_TIME_KEY, np.nan)
+            mcb_metrics[self.NUM_ROUNDS_KEY] = mcb_properties.get(self.NUM_ROUNDS_KEY, np.nan)
             all_metrics.append(mcb_metrics)
 
             # reliability diagram
