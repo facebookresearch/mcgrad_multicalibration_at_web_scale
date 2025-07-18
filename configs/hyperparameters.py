@@ -1648,4 +1648,10 @@ hyperparameters = {
 
 
 def get_hyperparameters(model, dataset, calib_frac):
-    return hyperparameters[model][dataset][calib_frac]
+    try:
+        return hyperparameters[model][dataset][calib_frac]
+    except KeyError as e:
+        if dataset.startswith('acs'):
+            return hyperparameters[model]['ACSIncome'][calib_frac]
+        else:
+            raise e

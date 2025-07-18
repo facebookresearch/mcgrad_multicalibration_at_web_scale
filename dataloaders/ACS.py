@@ -1,6 +1,9 @@
-from folktables import ACSDataSource, BasicProblem, adult_filter
+from folktables import ACSDataSource, BasicProblem, adult_filter, acs
 import numpy as np
 import os
+
+from configs.constants import US_STATES
+
 
 def groups_map(features_df, groups='default'):
     '''
@@ -129,8 +132,74 @@ def load_ACSIncome_no_race(states=['CA']):
     return load_ACSIncome(states, drop_features=['RAC1P'],
                           groups='all')
 
+def load_acs(target, groups='default'):
+    states = US_STATES
+    state_str = ""
+    for state in states:
+        state_str += state + '_'
 
-def load_ACSIncome(states=['CA'], drop_features=[], groups='default'):
+    DIR = "data/ACS/{0}/".format(state_str[:-1])
+    data_source = ACSDataSource(survey_year='2018', horizon='1-Year', survey='person', root_dir=DIR)
+
+    dl = True
+    # check if we need to download
+    if os.path.exists(DIR):
+        dl = False
+
+    state_data = data_source.get_data(states=states, download=dl)
+
+    if target == 'income':
+        ft_problem = acs.ACSIncome
+    elif target == 'employment':
+        ft_problem = acs.ACSEmployment
+    elif target == 'health_insurance':
+        ft_problem = acs.ACSHealthInsurance
+    elif target == 'public_health_insurance':
+        ft_problem = acs.ACSPublicCoverage
+    elif target == 'travel_time':
+        ft_problem = acs.ACSTravelTime
+    elif target == 'mobility':
+        ft_problem = acs.ACSMobility
+    else:
+        raise ValueError("Invalid target")
+
+    # filter groups from panda dataframe
+    features_df, targets_df, _ = ft_problem.df_to_pandas(state_data)
+    gm = groups_map(features_df, groups)
+
+    # record in list
+    gps, gp_names = [], []
+    for group in gm:
+        gps.append(gm[group])
+        gp_names.append(group)
+
+    # return data
+    X = features_df.values
+    y = targets_df.values.reshape(-1)
+    features_df['label'] = y
+    categorical_features = ['COW', 'SCHL', 'MAR', 'OCCP', 'POBP', 'RAC1P', 'RELP']
+    numerical_features = ['AGEP', 'WKHP', 'SEX']
+    return X, y, (gps, gp_names), features_df, categorical_features, numerical_features
+
+def load_acs_income_all_states(groups):
+    return load_acs(target='income', groups=groups)
+
+def load_acs_employment_all_states(groups):
+    return load_acs(target='employment', groups=groups)
+
+def load_acs_health_insurance_all_states(groups):
+    return load_acs(target='health_insurance', groups=groups)
+
+def load_acs_public_health_insurance_all_states(groups):
+    return load_acs(target='public_health_insurance', groups=groups)
+
+def load_acs_travel_time_all_states(groups):
+    return load_acs(target='travel_time', groups=groups)
+
+def load_acs_mobility_all_states(groups):
+    return load_acs(target='mobility', groups=groups)
+
+def load_ACSIncome(states=['CA'], drop_features=[], groups='default', feature_list=None):
     '''
     While this dataset is not considered in the paper, 
     we provide it here for comparison with prior works.
@@ -161,8 +230,8 @@ def load_ACSIncome(states=['CA'], drop_features=[], groups='default'):
         is governed by the terms of use provided by the Census Bureau. 
         For more information, see https://www.census.gov/data/developers/about/terms-of-service.html.
     '''
-    income_feature_list = ['AGEP', 'COW', 'SCHL', 'MAR', 'OCCP', 
-                           'POBP', 'RELP', 'WKHP', 'SEX', 'RAC1P' ]
+    income_feature_list = feature_list if feature_list is not None else ['AGEP', 'COW', 'SCHL', 'MAR', 'OCCP',
+                           'POBP', 'RELP', 'WKHP', 'SEX', 'RAC1P']
 
     state_str = ""
     for state in states:
@@ -182,7 +251,7 @@ def load_ACSIncome(states=['CA'], drop_features=[], groups='default'):
     ACSIncome_binary = BasicProblem(
         features=income_feature_list,
         target='PINCP',
-        target_transform=lambda x: x > 50000,    
+        target_transform=lambda x: x > 50000,
         preprocess=adult_filter,
         postprocess=lambda x: np.nan_to_num(x, -1))
 

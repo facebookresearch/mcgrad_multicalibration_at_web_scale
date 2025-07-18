@@ -211,3 +211,17 @@ CASMCBOOST_DEFAULT = [
 
 # collect all mcb algorithsm
 MCB_DEFAULT = HKRR_DEFAULT + CALIB_ALGS_DEFAULT + CASMCBOOST_DEFAULT  # + HJZ_DEFAULT
+
+
+US_STATES = [
+    # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#States.
+    "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "IA",
+    "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", "MI", "MN", "MO",
+    "MS", "MT", "NC", "ND", "NE", "NH", "NJ", "NM", "NV", "NY", "OH", "OK",
+    "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VA", "VT", "WA", "WI",
+    "WV", "WY",
+    # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#Federal_district.
+    # "DC",
+    # # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#Inhabited_territories.
+    # "AS", "GU", "MP", "PR", "VI",
+]

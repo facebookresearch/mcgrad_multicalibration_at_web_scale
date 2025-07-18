@@ -131,7 +131,7 @@ class Experiment:
                 categorical_features=self.dataset.categorical_features,
                 numerical_features=self.dataset.numerical_features,
             )
-            model_properties_to_track[self.NUM_ROUNDS_KEY] = len(mcbp.mcboost.mr)
+            model_properties_to_track[self.NUM_ROUNDS_KEY] = len(mcbp.mcbp.mcboost.mr)
         else:
             mcbp.fit(confs=confs_calib,
                     labels=self.y_calib, 

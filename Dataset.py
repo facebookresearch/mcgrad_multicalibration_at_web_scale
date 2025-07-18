@@ -1,5 +1,6 @@
 from dataloaders.Adult import load_AdultIncome
 from dataloaders.ACS import load_ACSIncome, load_ACSIncome_no_race
+from dataloaders import ACS as acs_loaders
 from dataloaders.CreditDefault import load_CreditDefault, load_CreditDefault_no_edu
 from dataloaders.HMDA import load_processed_HMDA, load_processed_HMDA_no_race
 from dataloaders.BankMarketing import load_BankMarketing, load_BankMarketing_no_job
@@ -53,6 +54,18 @@ class Dataset:
         # standard datasets
         if self.name == 'ACSIncome':
             load_data_fn = load_ACSIncome
+        elif self.name == 'acs_income_all_states':
+            load_data_fn = acs_loaders.load_acs_income_all_states
+        elif self.name == 'acs_employment_all_states':
+            load_data_fn = acs_loaders.load_acs_employment_all_states
+        elif self.name == 'acs_health_insurance_all_states':
+            load_data_fn = acs_loaders.load_acs_health_insurance_all_states
+        elif self.name == 'acs_public_health_insurance_all_states':
+            load_data_fn = acs_loaders.load_acs_public_health_insurance_all_states
+        elif self.name == 'acs_travel_time_all_states':
+            load_data_fn = acs_loaders.load_acs_travel_time_all_states
+        elif self.name == 'acs_mobility_all_states':
+            load_data_fn = acs_loaders.load_acs_mobility_all_states
         elif self.name == 'CreditDefault':
             load_data_fn = load_CreditDefault
         elif self.name == 'HMDA':
