@@ -134,15 +134,15 @@ def subgroup_metrics(
         )
     # add mean subgroup metrics
     all_metrics = ["size", "acc", "logloss", "rocauc", "prauc", "ECE", "smECE", "ECCE_perc", "ECCE_sigma"]
-    sg_mean = {_agg_metric(np.mean, metric_name, subgroup_metrics) for metric_name in all_metrics}
+    sg_mean = {metric_name: _agg_metric(np.mean, metric_name, subgroup_metrics) for metric_name in all_metrics}
     sg_mean |= {"MCE_perc": np.nan, "MCE_sigma": np.nan}
 
     # add subgroup max
-    sg_max = {_agg_metric(np.max, metric_name, subgroup_metrics) for metric_name in all_metrics}
+    sg_max = {metric_name: _agg_metric(np.max, metric_name, subgroup_metrics) for metric_name in all_metrics}
     sg_max |= {"MCE_perc": np.nan, "MCE_sigma": np.nan}
 
     # add subgroup min
-    sg_min = {_agg_metric(np.min, metric_name, subgroup_metrics) for metric_name in all_metrics}
+    sg_min = {metric_name: _agg_metric(np.min, metric_name, subgroup_metrics) for metric_name in all_metrics}
     sg_min |= {"MCE_perc": np.nan, "MCE_sigma": np.nan}
 
     # subgroup_metrics['mean'] = sg_mean
