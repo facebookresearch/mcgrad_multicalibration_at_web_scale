@@ -1,35 +1,65 @@
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+import lightgbm as lgb
+from configs.constants import FEATURE_TYPE_GROUPS, FEATURE_TYPE_FEATURES
 
 from .methods import MCBoost
 
 
+class MCBoostNoUnshrink(MCBoost):
+    def _fit_single_round(
+        self,
+        x: npt.NDArray,
+        y: npt.NDArray,
+        logits: npt.NDArray,
+        w: npt.NDArray | None,
+        categorical_feature_column_names: list[str] | None = None,
+        numerical_feature_column_names: list[str] | None = None,
+    ) -> npt.NDArray:
+        """
+        This is a patch of the original fit function that omits the unshrink step
+        """
+        x = np.c_[x, logits]
+
+        if categorical_feature_column_names is None:
+            categorical_feature_column_names = []
+        if numerical_feature_column_names is None:
+            numerical_feature_column_names = []
+
+        self.mr.append(
+            lgb.train(
+                params=self.get_lgbm_params(x),
+                train_set=lgb.Dataset(
+                    x,
+                    label=y,
+                    init_score=logits,
+                    weight=w,
+                    categorical_feature=categorical_feature_column_names,
+                    feature_name=categorical_feature_column_names
+                    + numerical_feature_column_names
+                    + ["logits"],
+                ),
+            )
+        )
+
+        new_pred = self.mr[-1].predict(x, raw_score=True)
+        self.unshrink_factors.append(1)
+        return logits + new_pred
+
+
+
 class CASMCBoostAlgorithm:
-    """
-    Our own MCBoost implementation.
-    """
 
     def __init__(self, params) -> None:
-        """
-        Initialize Multicalibration Predictor.
-        MCBoost variants:
-        - jinetal uses only subgroups as categorical features;
-        - nogroups uses only the features and not the groups;
-        - alltogether uses both subgroups and features.
-        """
-        self.mcboost_variant = params["mcboost_variant"] or "jinetal"
-        self.weight_column_name = params["weight_column_name"] or None
-        self.categorical_feature_column_names = (
-            params["categorical_feature_column_names"] or None
-        )
-        self.numerical_feature_column_names = (
-            params["numerical_feature_column_names"] or None
-        )
-        self.auto_infer_column_types = params.get("auto_infer_column_types", True)
-        self.categorical_threshold = params.get("categorical_threshold", 10)
+        if params["feature_type"] not in [FEATURE_TYPE_GROUPS, FEATURE_TYPE_FEATURES]:
+            raise ValueError("Invalid feature type")
+        self.feature_type = params["feature_type"]
+        self.unshrink = params["unshrink"]
 
-        self.mcboost = MCBoost(
+        mcb_cls = MCBoost if self.unshrink else MCBoostNoUnshrink
+
+        self.mcboost = mcb_cls(
             encode_categorical_variables=params["encode_categorical_variables"] or True,
             monotone_t=params["monotone_t"] or None,
             num_rounds=params["num_rounds"] or 100,
@@ -47,31 +77,49 @@ class CASMCBoostAlgorithm:
             or None,
         )
 
-    def fit(self, confs, labels, subgroups, df=None, categorical_features=None, numerical_features=None) -> None:
-        if self.mcboost_variant in ["nogroups", "alltogether"] and df is None:
-            raise ValueError(
-                "df has to be passed if variant is nogroups or alltogether"
-            )
+    def _groups_to_dataframe(self, subgroups, n) -> pd.DataFrame:
+        df_out = pd.DataFrame()
+        if subgroups:
+            for i, segment in enumerate(subgroups):
+                segment_col = f"segment_{i + 1}"
+                df_out[segment_col] = [
+                    1 if idx in segment else 0 for idx in range(n)
+                ]
 
-        df['precali_scores'] = confs[:, 1]
+        return df_out
+
+    def fit(self, confs, labels, subgroups, df=None, categorical_features=None, numerical_features=None) -> None:
+
+        if self.feature_type == FEATURE_TYPE_GROUPS:
+            fit_df = self._groups_to_dataframe(subgroups, len(labels))
+            categorical_features = list(fit_df.columns)
+            numerical_features = []
+        else:
+            fit_df = df.copy()
+
+        fit_df['precali_scores'] = confs[:, 1]
+        fit_df['label'] = labels
 
         self.mcboost.fit(
-            df_train=df,
+            df_train=fit_df,
             prediction_column_name="precali_scores",
             label_column_name="label",
-            weight_column_name=self.weight_column_name,
             categorical_feature_column_names=categorical_features,
             numerical_feature_column_names=numerical_features,
         )
 
     def batch_predict(self, f_xs, groups, df=None, categorical_features=None, numerical_features=None) -> npt.NDArray:
-        if self.mcboost_variant in ["nogroups", "alltogether"] and df is None:
-            raise ValueError(
-                "df has to be passed if variant is nogroups or alltogether"
-            )
+        if self.feature_type == FEATURE_TYPE_GROUPS:
+            predict_df = self._groups_to_dataframe(groups, len(f_xs))
+            categorical_features = list(predict_df.columns)
+            numerical_features = []
+        else:
+            predict_df = df.copy()
+
+        predict_df['precali_scores'] = f_xs[:, 1]
 
         return self.mcboost.predict(
-            df=df,
+            df=predict_df,
             prediction_column_name="precali_scores",
             categorical_feature_column_names=categorical_features,
             numerical_feature_column_names=numerical_features,

@@ -18,6 +18,7 @@ import os
 class Experiment:
     MCB_ALGO_KEY = 'mcb_algorithm'
     MCB_ALGO_PARAMS_KEY = 'mcb_algorithm_params'
+    SET_NAME_KEY = 'set_name'
 
     def __init__(self, dataset, model, calib_frac, calib_train_overlap=0, calib_seed=50):
         '''
@@ -36,7 +37,7 @@ class Experiment:
         self.mcb_models = []
         self.logger = None
         self.wandb = False
-        self.results_storage_path = f"mc_industry_results/dataset={dataset.name}_model={model.name}_seed={calib_seed}.pkl"
+        self.results_storage_path = f"mc_industry_results/"
 
         if (self.calib_frac > 0 or self.calib_train_overlap > 0):
             (
@@ -159,23 +160,27 @@ class Experiment:
         # Extract common fields
         algorithm = data[self.MCB_ALGO_KEY]
         algorithm_params = data[self.MCB_ALGO_PARAMS_KEY]
+        set_name = data[self.SET_NAME_KEY]
 
         # Extract group entries (filter out non-integer keys)
         group_rows = [
-            {'group': k, self.MCB_ALGO_KEY: algorithm, self.MCB_ALGO_PARAMS_KEY: algorithm_params, **v}
+            {'group': k, self.MCB_ALGO_KEY: algorithm, self.MCB_ALGO_PARAMS_KEY: algorithm_params,
+             self.SET_NAME_KEY: set_name, **v}
             for k, v in data.items() if isinstance(k, int) or k in ['max', 'min', 'mean', 'agg']
         ]
 
         return pd.DataFrame(group_rows)
 
 
-    def save_metrics(self, dicts):
+    def save_metrics(self, dicts, dataset_split_name):
         df = pd.concat([self._metrics_dict_to_df(d) for d in dicts]).reset_index(drop=True).assign(
             dataset=self.dataset.name,
             model=self.model.name,
         )
-        pathlib.Path(self.results_storage_path).parent.mkdir(parents=True, exist_ok=True)
-        df.to_pickle(self.results_storage_path)
+        fname = f"dataset={self.dataset.name}_model={self.model.name}_seed={self.dataset.val_split_seed}_split={dataset_split_name}.pkl"
+        outpath = pathlib.Path(self.results_storage_path) / pathlib.Path(fname)
+        pathlib.Path(self.results_storage_path).mkdir(parents=True, exist_ok=True)
+        df.to_pickle(outpath)
 
     def evaluate_model(
             self,
@@ -205,9 +210,10 @@ class Experiment:
 
         # log metrics
         if self.wandb: self.logger.log("ERM", dataset_split_name, original_model_metrics_val)
-        print_metrics(original_model_metrics_val, algorithm=self.model.name, split=dataset_split_name)
+        # print_metrics(original_model_metrics_val, algorithm=self.model.name, split=dataset_split_name)
         original_model_metrics_val[self.MCB_ALGO_KEY] = None
         original_model_metrics_val[self.MCB_ALGO_PARAMS_KEY] = None
+        original_model_metrics_val[self.SET_NAME_KEY] = dataset_split_name
         all_metrics = [original_model_metrics_val]
 
         # reliability diagram
@@ -264,11 +270,12 @@ class Experiment:
                     self.logger.log(f"{alg_type}", dataset_split_name, mcb_metrics)
             
             # view
-            print_metrics(mcb_metrics, algorithm=self.model.name, 
-                          postprocess=alg_type, split=dataset_split_name, params=mcb_params)
+            # print_metrics(mcb_metrics, algorithm=self.model.name,
+            #               postprocess=alg_type, split=dataset_split_name, params=mcb_params)
 
             mcb_metrics[self.MCB_ALGO_KEY] = alg_type
             mcb_metrics[self.MCB_ALGO_PARAMS_KEY] = mcb_params
+            mcb_metrics[self.SET_NAME_KEY] = dataset_split_name
             all_metrics.append(mcb_metrics)
 
             # reliability diagram
@@ -280,7 +287,7 @@ class Experiment:
                 plt.close(fig)
 
         # dump metric results to file
-        self.save_metrics(all_metrics)
+        self.save_metrics(all_metrics, dataset_split_name)
 
 
     def init_logger(self, config={}, finish=False, project=None, run_name=None):

@@ -65,7 +65,6 @@ class MulticalibrationPredictor:
         """
         # Only pass df parameter to algorithms that support it (currently only CASMCBoost)
         if self.algorithm == MCBOOST_NAME:
-            df['precali_scores'] = f_xs[:, 1]
             return self.mcbp.batch_predict(f_xs, groups, df, categorical_features=categorical_features, numerical_features=numerical_features)
         else:
             return self.mcbp.batch_predict(f_xs, groups)

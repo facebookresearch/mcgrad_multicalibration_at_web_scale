@@ -97,6 +97,8 @@ CALIB_ALGS_DEFAULT = [
 ]
 
 MCBOOST_NAME = 'CASMCBoost'
+FEATURE_TYPE_GROUPS = 'group'
+FEATURE_TYPE_FEATURES = 'features'
 
 # collect all mcb algorithsm
 # MCB_DEFAULT = HKRR_DEFAULT + HJZ_DEFAULT + CALIB_ALGS_DEFAULT
@@ -104,8 +106,10 @@ CASMCBOOST_DEFAULT = [
     {
         "type": MCBOOST_NAME,
         "params": [
+            # Our variant
             {
-                "mcboost_variant": "nogroups",
+                "feature_type": FEATURE_TYPE_FEATURES,
+                "unshrink": True,
                 "encode_categorical_variables": True,
                 "monotone_t": None,
                 "num_rounds": 100,
@@ -120,8 +124,86 @@ CASMCBOOST_DEFAULT = [
                 "weight_column_name": None,
                 "categorical_feature_column_names": None,
                 "numerical_feature_column_names": None,
-                "auto_infer_column_types": False,
-                "categorical_threshold": 30,
+            },
+
+            # Our variant with group features
+            {
+                "feature_type": FEATURE_TYPE_GROUPS,
+                "unshrink": True,
+                "encode_categorical_variables": True,
+                "monotone_t": None,
+                "num_rounds": 100,
+                "lightgbm_params": None,
+                "early_stopping": True,
+                "patience": 0,
+                "early_stopping_score_func": None,
+                "early_stopping_minimize_score": None,
+                "early_stopping_timeout": 8 * 60 * 60,
+                "save_training_performance": False,
+                "monitored_metrics_during_training": None,
+                "weight_column_name": None,
+                "categorical_feature_column_names": None,
+                "numerical_feature_column_names": None,
+            },
+
+            # Unshrink ablation
+            {
+                "feature_type": FEATURE_TYPE_FEATURES,
+                "unshrink": False,
+                "encode_categorical_variables": True,
+                "monotone_t": None,
+                "num_rounds": 100,
+                "lightgbm_params": None,
+                "early_stopping": True,
+                "patience": 0,
+                "early_stopping_score_func": None,
+                "early_stopping_minimize_score": None,
+                "early_stopping_timeout": 8 * 60 * 60,
+                "save_training_performance": False,
+                "monitored_metrics_during_training": None,
+                "weight_column_name": None,
+                "categorical_feature_column_names": None,
+                "numerical_feature_column_names": None,
+            },
+
+            # One round ablation
+            {
+                "feature_type": FEATURE_TYPE_FEATURES,
+                "unshrink": True,
+                "encode_categorical_variables": True,
+                "monotone_t": None,
+                "num_rounds": 1,
+                "lightgbm_params": None,
+                "early_stopping": False,
+                "patience": 0,
+                "early_stopping_score_func": None,
+                "early_stopping_minimize_score": None,
+                "early_stopping_timeout": 8 * 60 * 60,
+                "save_training_performance": False,
+                "monitored_metrics_during_training": None,
+                "weight_column_name": None,
+                "categorical_feature_column_names": None,
+                "numerical_feature_column_names": None,
+            },
+
+            # Jin et al. Variant
+            {
+                "feature_type": FEATURE_TYPE_GROUPS,
+                "unshrink": False,
+                "encode_categorical_variables": True,
+                "monotone_t": None,
+                "num_rounds": 1,
+                "lightgbm_params": {'max_depth': 2},
+                "early_stopping": False,
+                "patience": 0,
+                "early_stopping_score_func": None,
+                "early_stopping_minimize_score": None,
+                "early_stopping_timeout": 8 * 60 * 60,
+                "save_training_performance": False,
+                "monitored_metrics_during_training": None,
+                "weight_column_name": None,
+                "categorical_feature_column_names": None,
+                "numerical_feature_column_names": None,
             }
         ],
     }

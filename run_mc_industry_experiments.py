@@ -17,10 +17,10 @@ def run_mc_industry_experiments():
 
     datasets = [
         'ACSIncome',
-        'CreditDefault',
-        'BankMarketing',
-        'HMDA',
-        'MEPS',
+        # 'CreditDefault',
+        # 'BankMarketing',
+        # 'HMDA',
+        # 'MEPS',
     ]
 
     # seeds = SEEDS_DEFAULT
