@@ -17,34 +17,32 @@ def run_mc_industry_experiments():
     ]
 
     datasets = [
-        # 'ACSIncome',
-        'acs_income_all_states',
         'acs_employment_all_states',
-        # 'acs_health_insurance_all_states',
-        # 'acs_public_health_insurance_all_states',
-        # 'acs_travel_time_all_states',
-        # 'acs_mobility_all_states',
-        # 'CreditDefault',
-        # 'BankMarketing',
-        # 'HMDA',
-        # 'MEPS',
+        'acs_health_insurance_all_states',
+        'acs_public_health_insurance_all_states',
+        'acs_travel_time_all_states',
+        'acs_mobility_all_states',
+        'acs_income_all_states',
+        'ACSIncome',
+        'CreditDefault',
+        'BankMarketing',
+        'HMDA',
+        'MEPS',
     ]
 
-    # seeds = SEEDS_DEFAULT
-    seeds = [15]
+    seeds = SEEDS_DEFAULT
 
     # create all combinations of datasets, models, and seeds
     combs = itertools.product(datasets, models, seeds)
     for dataset, model, seed in combs:
         print(f'********** {dataset} {model} seed={seed} **********')
-        data_reuse_experiment(model, dataset, seed, wandb=False)
+        try:
+            data_reuse_experiment(model, dataset, seed, wandb=False)
+        except Exception as e:
+            print(f'Experiment faild {model}, {dataset}, {seed}')
+            print(e)
+            continue
 
 
 if __name__ == "__main__":
-    # load_ACSIncome()
-    # load_CreditDefault()
-    # load_BankMarketing()
-    # load_HMDA()
-    # load_MEPS()
-
     run_mc_industry_experiments()

@@ -22,18 +22,18 @@ HKRR_DEFAULT = [
                 "lambda": 0.1,
                 "alpha": 0.1,
             },
-            # {
-            #     'lambda': 0.1,
-            #     'alpha': 0.05,
-            # },
-            # {
-            #     'lambda': 0.1,
-            #     'alpha': 0.025,
-            # },
-            # {
-            #     'lambda': 0.1,
-            #     'alpha': 0.0125,
-            # }
+            {
+                'lambda': 0.1,
+                'alpha': 0.05,
+            },
+            {
+                'lambda': 0.1,
+                'alpha': 0.025,
+            },
+            {
+                'lambda': 0.1,
+                'alpha': 0.0125,
+            }
         ],
     },
 ]

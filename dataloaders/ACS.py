@@ -163,6 +163,23 @@ def load_acs(target, groups='default'):
     else:
         raise ValueError("Invalid target")
 
+    # Ensure all features for group assignment are present
+    group_features = {
+        'AGEP',
+        'COW',
+        'SCHL',
+        'MAR',
+        'OCCP',
+        'POBP',
+        'RELP',
+        'WKHP',
+        'SEX',
+        'RAC1P',
+    }
+    # bit of a hack
+    present_features = set(ft_problem.features)
+    ft_problem._features = list(present_features | group_features)
+
     # filter groups from panda dataframe
     features_df, targets_df, _ = ft_problem.df_to_pandas(state_data)
     gm = groups_map(features_df, groups)
