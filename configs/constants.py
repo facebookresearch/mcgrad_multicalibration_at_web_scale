@@ -186,6 +186,26 @@ CASMCBOOST_DEFAULT = [
                 "numerical_feature_column_names": None,
             },
 
+            # Min_sum_hessian=0 ablation
+            {
+                "feature_type": FEATURE_TYPE_FEATURES,
+                "unshrink": True,
+                "encode_categorical_variables": True,
+                "monotone_t": None,
+                "num_rounds": 1,
+                "lightgbm_params": {'min_sum_hessian_in_leaf': 0},
+                "early_stopping": False,
+                "patience": 0,
+                "early_stopping_score_func": None,
+                "early_stopping_minimize_score": None,
+                "early_stopping_timeout": 8 * 60 * 60,
+                "save_training_performance": False,
+                "monitored_metrics_during_training": None,
+                "weight_column_name": None,
+                "categorical_feature_column_names": None,
+                "numerical_feature_column_names": None,
+            },
+
             # Jin et al. Variant
             {
                 "feature_type": FEATURE_TYPE_GROUPS,
@@ -212,16 +232,16 @@ CASMCBOOST_DEFAULT = [
 # collect all mcb algorithsm
 MCB_DEFAULT = HKRR_DEFAULT + CALIB_ALGS_DEFAULT + CASMCBOOST_DEFAULT  # + HJZ_DEFAULT
 
-
-US_STATES = [
-    # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#States.
-    "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "IA",
-    "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", "MI", "MN", "MO",
-    "MS", "MT", "NC", "ND", "NE", "NH", "NJ", "NM", "NV", "NY", "OH", "OK",
-    "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VA", "VT", "WA", "WI",
-    "WV", "WY",
-    # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#Federal_district.
-    # "DC",
-    # # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#Inhabited_territories.
-    # "AS", "GU", "MP", "PR", "VI",
-]
+US_STATES = ['CA']
+# US_STATES = [
+#     # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#States.
+#     "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "IA",
+#     "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", "MI", "MN", "MO",
+#     "MS", "MT", "NC", "ND", "NE", "NH", "NJ", "NM", "NV", "NY", "OH", "OK",
+#     "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VA", "VT", "WA", "WI",
+#     "WV", "WY",
+#     # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#Federal_district.
+#     # "DC",
+#     # # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#Inhabited_territories.
+#     # "AS", "GU", "MP", "PR", "VI",
+# ]

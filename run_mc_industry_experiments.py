@@ -1,11 +1,10 @@
-from dataloaders.ACS import load_ACSIncome
-from dataloaders.CreditDefault import load_CreditDefault
-from dataloaders.BankMarketing import load_BankMarketing
-from dataloaders.HMDA import load_HMDA
-from dataloaders.MEPS import load_MEPS
 from run_experiment import data_reuse_experiment
 from configs.constants import SEEDS_DEFAULT
 import itertools
+import logging
+from mcb_algorithms.CAS.methods import logger as mcb_logger
+from mcb_algorithms.CAS.CASMCBoost import logger as mcb_wrapper_logger
+
 
 def run_mc_industry_experiments():
 
@@ -30,7 +29,8 @@ def run_mc_industry_experiments():
         'MEPS',
     ]
 
-    seeds = SEEDS_DEFAULT
+    # seeds = SEEDS_DEFAULT
+    seeds = [15]
 
     # create all combinations of datasets, models, and seeds
     combs = itertools.product(datasets, models, seeds)
@@ -45,4 +45,6 @@ def run_mc_industry_experiments():
 
 
 if __name__ == "__main__":
+    mcb_logger.setLevel(logging.DEBUG)
+    mcb_wrapper_logger.setLevel(logging.DEBUG)
     run_mc_industry_experiments()

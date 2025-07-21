@@ -170,11 +170,21 @@ class Experiment:
         algorithm_params = data[self.MCB_ALGO_PARAMS_KEY]
         set_name = data[self.SET_NAME_KEY]
         seed = data[self.SEED_KEY]
+        fit_time = data[self.FIT_TIME_KEY]
+        num_rounds = data[self.NUM_ROUNDS_KEY]
 
         # Extract group entries (filter out non-integer keys)
         group_rows = [
-            {'group': k, self.MCB_ALGO_KEY: algorithm, self.MCB_ALGO_PARAMS_KEY: algorithm_params,
-             self.SET_NAME_KEY: set_name, self.SEED_KEY: seed, **v}
+            {
+                'group': k,
+                self.MCB_ALGO_KEY: algorithm,
+                self.MCB_ALGO_PARAMS_KEY: algorithm_params,
+                self.SET_NAME_KEY: set_name,
+                self.SEED_KEY: seed,
+                self.FIT_TIME_KEY: fit_time,
+                self.NUM_ROUNDS_KEY: num_rounds,
+                **v
+            }
             for k, v in data.items() if isinstance(k, int) or k in ['max', 'min', 'mean', 'agg']
         ]
 
