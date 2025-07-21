@@ -1651,6 +1651,8 @@ def get_hyperparameters(model, dataset, calib_frac):
     try:
         return hyperparameters[model][dataset][calib_frac]
     except KeyError as e:
+        # print('No hyperparams found using defaults')
+        # return {}
         if dataset.startswith('acs'):
             return hyperparameters[model]['ACSIncome'][calib_frac]
         else:
