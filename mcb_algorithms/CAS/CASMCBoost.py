@@ -3,9 +3,11 @@ import numpy.typing as npt
 import pandas as pd
 import lightgbm as lgb
 from configs.constants import FEATURE_TYPE_GROUPS, FEATURE_TYPE_FEATURES
-
+import logging
 from .methods import MCBoost
 
+
+logger = logging.getLogger(__name__)
 
 class MCBoostNoUnshrink(MCBoost):
     def _fit_single_round(
@@ -78,23 +80,32 @@ class CASMCBoostAlgorithm:
         )
 
     def _groups_to_dataframe(self, subgroups, n) -> pd.DataFrame:
-        df_out = pd.DataFrame()
-        if subgroups:
-            for i, segment in enumerate(subgroups):
-                segment_col = f"segment_{i + 1}"
-                df_out[segment_col] = [
-                    1 if idx in segment else 0 for idx in range(n)
-                ]
+        print(f"Groups to dataframe: {n}")
+        if not subgroups:
+            return pd.DataFrame()
 
-        return df_out
+        # Initialize an empty (n x len(subgroups)) array of zeros
+        data = np.zeros((n, len(subgroups)), dtype=np.uint8)
+
+        # Fill in 1s for each subgroup
+        for i, segment in enumerate(subgroups):
+            data[segment, i] = 1
+
+        # Create column names
+        col_names = [f"segment_{i + 1}" for i in range(len(subgroups))]
+
+        # Return as DataFrame
+        return pd.DataFrame(data, columns=col_names)
 
     def fit(self, confs, labels, subgroups, df=None, categorical_features=None, numerical_features=None) -> None:
 
         if self.feature_type == FEATURE_TYPE_GROUPS:
+            print("fitting with groups features")
             fit_df = self._groups_to_dataframe(subgroups, len(labels))
             categorical_features = list(fit_df.columns)
             numerical_features = []
         else:
+            print("fitting with features features")
             fit_df = df.copy()
 
         fit_df['precali_scores'] = confs[:, 1]
@@ -110,10 +121,12 @@ class CASMCBoostAlgorithm:
 
     def batch_predict(self, f_xs, groups, df=None, categorical_features=None, numerical_features=None) -> npt.NDArray:
         if self.feature_type == FEATURE_TYPE_GROUPS:
+            logger.info("predicting with groups features")
             predict_df = self._groups_to_dataframe(groups, len(f_xs))
             categorical_features = list(predict_df.columns)
             numerical_features = []
         else:
+            logger.info("predicting with features features")
             predict_df = df.copy()
 
         predict_df['precali_scores'] = f_xs[:, 1]
