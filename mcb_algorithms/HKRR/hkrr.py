@@ -1,6 +1,7 @@
 from concurrent.futures import ProcessPoolExecutor as PPE
 import numpy as np
 from tqdm import tqdm, trange
+from collections import defaultdict
 import time
 
 
@@ -185,20 +186,20 @@ class HKRRAlgorithm:
                 break
 
         return mcb_pred
-    
-    def _batch_predict_regular(self, f_xs, groups, early_stop=None):
-        """
-        The batch_predict method without parallelization.
-        Used in private _batch_predict method if max_workers=1.
 
-        :param f_x: initial prediction (float)
-        """
-        # name vars
+    def _batch_predict_regular(self, f_xs, groups, early_stop=None):
         early_stop = early_stop if early_stop else len(self.subgroup_updated_iters)
         mcb_preds = f_xs.copy()
 
+        # Build reverse index: maps data index -> list of group indices
+        i_to_groups = defaultdict(list)
+        for group_idx, group in enumerate(groups):
+            for i in group:
+                i_to_groups[i].append(group_idx)
+
         for i in trange(len(f_xs)):
-            mcb_preds[i] = self.predict(f_xs[i], [j for j in range(len(groups)) if i in groups[j]], early_stop=early_stop)
+            group_indices = i_to_groups.get(i, [])
+            mcb_preds[i] = self.predict(f_xs[i], group_indices, early_stop=early_stop)
 
         return mcb_preds
 
