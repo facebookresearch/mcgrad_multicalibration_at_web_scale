@@ -186,14 +186,14 @@ CASMCBOOST_DEFAULT = [
                 "numerical_feature_column_names": None,
             },
 
-            # Min_sum_hessian=0 ablation
+            # Min_sum_hessian=20 ablation
             {
                 "feature_type": FEATURE_TYPE_FEATURES,
                 "unshrink": True,
                 "encode_categorical_variables": True,
                 "monotone_t": None,
                 "num_rounds": 100,
-                "lightgbm_params": {'min_sum_hessian_in_leaf': 0},
+                "lightgbm_params": {'min_sum_hessian_in_leaf': 20},
                 "early_stopping": True,
                 "patience": 0,
                 "early_stopping_score_func": None,
@@ -232,16 +232,16 @@ CASMCBOOST_DEFAULT = [
 # collect all mcb algorithsm
 MCB_DEFAULT = HKRR_DEFAULT + CALIB_ALGS_DEFAULT + CASMCBOOST_DEFAULT  # + HJZ_DEFAULT
 
-US_STATES = ['CA']
-# US_STATES = [
-#     # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#States.
-#     "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "IA",
-#     "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", "MI", "MN", "MO",
-#     "MS", "MT", "NC", "ND", "NE", "NH", "NJ", "NM", "NV", "NY", "OH", "OK",
-#     "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VA", "VT", "WA", "WI",
-#     "WV", "WY",
-#     # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#Federal_district.
-#     # "DC",
-#     # # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#Inhabited_territories.
-#     # "AS", "GU", "MP", "PR", "VI",
-# ]
+# US_STATES = ['CA']
+US_STATES = [
+    # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#States.
+    "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "IA",
+    "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", "MI", "MN", "MO",
+    "MS", "MT", "NC", "ND", "NE", "NH", "NJ", "NM", "NV", "NY", "OH", "OK",
+    "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VA", "VT", "WA", "WI",
+    "WV", "WY",
+    # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#Federal_district.
+    # "DC",
+    # # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#Inhabited_territories.
+    # "AS", "GU", "MP", "PR", "VI",
+]
