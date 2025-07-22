@@ -16,8 +16,16 @@ from imblearn.over_sampling import SMOTE as imbl_smote
 from prettytable import PrettyTable
 import pandas as pd
 import numpy as np
+import os
+import ssl
 # import torchtext
 
+
+def _handle_ssl_verification():
+    if not os.environ.get("PYTHONHTTPSVERIFY", "") and getattr(
+        ssl, "_create_unverified_context", None
+    ):
+        ssl._create_default_https_context = ssl._create_unverified_context
 
 class Dataset:
     def __init__(self, dataset_name, 
@@ -51,6 +59,8 @@ class Dataset:
         self.class_balance = class_balance
         load_data_fn = None
         
+        _handle_ssl_verification()
+
         # standard datasets
         if self.name == 'ACSIncome':
             load_data_fn = load_ACSIncome
