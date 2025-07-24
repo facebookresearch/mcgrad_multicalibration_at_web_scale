@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 def run_mc_industry_experiments():
 
-    mcb_configuration = get_mcgrad_configs(tune_hyperparams=False)
+    mcb_configuration = get_mcgrad_configs(tune_hyperparams=False) + HKRR_DEFAULT + CALIB_ALGS_DEFAULT
 
     base_models = [
         # 'SVM',
