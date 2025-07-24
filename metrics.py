@@ -89,9 +89,9 @@ def subgroup_metrics(
 
         # deterministic metrics
         group_acc = len(np.where(subgroup_preds == subgroup_targets)[0]) / len(group)
-        group_logloss = skmetrics.log_loss(subgroup_targets, subgroup_preds)
-        group_rocauc = skmetrics.roc_auc_score(subgroup_targets, subgroup_preds)
-        group_prauc = skmetrics.average_precision_score(subgroup_targets, subgroup_preds)
+        group_logloss = skmetrics.log_loss(subgroup_targets, subgroup_confs)
+        group_rocauc = skmetrics.roc_auc_score(subgroup_targets, subgroup_confs)
+        group_prauc = skmetrics.average_precision_score(subgroup_targets, subgroup_confs)
         ece = binnedECE(subgroup_confs, subgroup_targets)
         smece = smECE(subgroup_confs, subgroup_targets)
         ecce_perc_val = ecce_perc(subgroup_confs, subgroup_targets)
@@ -115,9 +115,9 @@ def subgroup_metrics(
     agg_metrics = {
         "size": 1.0,
         "acc": round(len(np.where(preds == targets)[0]) / len(targets), 4),
-        "logloss": round(skmetrics.log_loss(targets, preds),4),
-        "rocauc": round(skmetrics.roc_auc_score(targets, preds),4),
-        "prauc": round(skmetrics.average_precision_score(targets, preds),4),
+        "logloss": round(skmetrics.log_loss(targets, positive_class_confs),4),
+        "rocauc": round(skmetrics.roc_auc_score(targets, positive_class_confs),4),
+        "prauc": round(skmetrics.average_precision_score(targets, positive_class_confs),4),
         "ECE": round(binnedECE(positive_class_confs, targets), 4),
         "smECE": round(smECE(positive_class_confs, targets), 4),
         "ECCE_perc": round(mce.global_ecce, 4),
