@@ -4,8 +4,10 @@ from Experiment import Experiment
 from itertools import product
 from configs.hyperparameters import get_hyperparameters
 from configs.constants import SPLIT_DEFAULT, SEEDS_DEFAULT, CALIB_FRACS_DEFAULT
-from configs.constants import SEEDS_REDUCED, CALIB_FRACS_REDUCED
-from configs.constants import MCB_DEFAULT
+from configs.constants import SEEDS_REDUCED, CALIB_FRACS_REDUCED, MCB_DEFAULT
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # helper function for obtaining save directory names
@@ -240,9 +242,9 @@ def NN_eval(model_name, dataset, calib_fracs, seeds, eval_epochs=None, no_mcb=Fa
                 if wandb: experiment.init_logger(finish=True)
 
 
-def data_reuse_experiment(model_name, dataset, seed, wandb=True):
+def data_reuse_experiment(model_name, dataset, seed, wandb=True, mcb_params=None):
     # set constants for the experiment
-    mcb_params = MCB_DEFAULT
+    mcb_params = MCB_DEFAULT if mcb_params is None else mcb_params
     calib_frac = 0
     calib_train_overlap = 1.0
     groups_collection = 'default'
@@ -272,18 +274,17 @@ def data_reuse_experiment(model_name, dataset, seed, wandb=True):
     model = Model(model_name, config=config, SAVE_DIR=config['save_dir'])
     experiment = Experiment(dataset_obj, model, calib_frac=config['calib_frac'], 
                             calib_train_overlap=calib_train_overlap)
+    logger.info(f"Storing results at {experiment.results_storage_path}")
 
     # init logger; this saves metrics to wandb
     if wandb: experiment.init_logger(config, project=wdb_project)
-    
+
     # train and postprocess
     experiment.train_model()
     if config['calib_frac'] > 0 or config['calib_train_overlap'] > 0:
         experiment.multicalibrate_multiple(mcb_params)
 
     # evaluate splits
-    # experiment.evaluate_train()
-    # experiment.evaluate_calib()
     experiment.evaluate_val()
     experiment.evaluate_test()
 

@@ -95,98 +95,104 @@ CALIB_ALGS_DEFAULT = [
     #                 for t in np.linspace(0.2, 4, 20)]
     # }
 ]
+MCB_DEFAULT = CALIB_ALGS_DEFAULT + HKRR_DEFAULT + HJZ_DEFAULT
 
-MCBOOST_NAME = 'CASMCBoost'
+MCBOOST_NAME = 'MCGrad'
 FEATURE_TYPE_GROUPS = 'group'
 FEATURE_TYPE_FEATURES = 'features'
 
-# collect all mcb algorithsm
-# MCB_DEFAULT = HKRR_DEFAULT + HJZ_DEFAULT + CALIB_ALGS_DEFAULT
-TUNE_MCB_HYPERPARAMS = True
-CASMCBOOST_DEFAULT = [
-    {
-        "type": MCBOOST_NAME,
-        "params": [
-            # Min_sum_hessian=0 ablation
-            {
-                "name": MCBOOST_NAME + '_msh_0_ablation',
-                "feature_type": FEATURE_TYPE_FEATURES,
-                "unshrink": True,
-                "encode_categorical_variables": True,
-                "num_rounds": 10,
-                "lightgbm_params": {'min_sum_hessian_in_leaf': 0},
-                "early_stopping": True,
-                "fixed_parameters": ['min_sum_hessian_in_leaf'],
-                "tune_hyperparameters": TUNE_MCB_HYPERPARAMS,
-            },
-
-            # Vanilla (our) variant
-            {
-                "name": MCBOOST_NAME,
-                "feature_type": FEATURE_TYPE_FEATURES,
-                "unshrink": True,
-                "encode_categorical_variables": True,
-                "num_rounds": 10,
-                "lightgbm_params": None,
-                "early_stopping": True,
-                "tune_hyperparameters": TUNE_MCB_HYPERPARAMS,
-            },
-
-            # Our variant with group features
-            {
-                "name": MCBOOST_NAME + '_group_features',
-                "feature_type": FEATURE_TYPE_GROUPS,
-                "unshrink": True,
-                "encode_categorical_variables": True,
-                "num_rounds": 10,
-                "lightgbm_params": None,
-                "early_stopping": True,
-                "tune_hyperparameters": TUNE_MCB_HYPERPARAMS,
-            },
-
-            # Unshrink ablation
-            {
-                "name": MCBOOST_NAME + '_unshrink_ablation',
-                "feature_type": FEATURE_TYPE_FEATURES,
-                "unshrink": False,
-                "encode_categorical_variables": True,
-                "num_rounds": 10,
-                "lightgbm_params": None,
-                "early_stopping": True,
-                "tune_hyperparameters": TUNE_MCB_HYPERPARAMS,
-            },
-
-            # One round ablation
-            {
-                "name": MCBOOST_NAME + '_one_round_ablation',
-                "feature_type": FEATURE_TYPE_FEATURES,
-                "unshrink": True,
-                "encode_categorical_variables": True,
-                "num_rounds": 1,
-                "lightgbm_params": None,
-                "early_stopping": False,
-                "tune_hyperparameters": TUNE_MCB_HYPERPARAMS,
-            },
-
-            # Jin et al. Variant
+MCB_TEST = [{"type": MCBOOST_NAME, "params": [            # Jin et al. Variant
             {
                 "name": 'DFMCBoost',
                 "feature_type": FEATURE_TYPE_GROUPS,
                 "unshrink": False,
                 "encode_categorical_variables": True,
-                "num_rounds": 1,
+                "num_rounds": 10,
                 "lightgbm_params": {'max_depth': 2},
                 "early_stopping": False,
-                "tune_hyperparameters": TUNE_MCB_HYPERPARAMS,
-            }
-        ],
-    }
-]
+                "tune_hyperparameters": False,
+            }]}]
 
-# collect all mcb algorithsm
-MCB_DEFAULT = HKRR_DEFAULT + CALIB_ALGS_DEFAULT + CASMCBOOST_DEFAULT  # + HJZ_DEFAULT
+def get_mcgrad_configs(tune_hyperparams: bool = False):
+    return {
+            "type": MCBOOST_NAME,
+            "params": [
+                # Min_sum_hessian=20 ablation
+                {
+                    "name": MCBOOST_NAME + '_msh_0_ablation',
+                    "feature_type": FEATURE_TYPE_FEATURES,
+                    "unshrink": True,
+                    "encode_categorical_variables": True,
+                    "num_rounds": 10,
+                    "lightgbm_params": {'min_sum_hessian_in_leaf': 20},
+                    "early_stopping": True,
+                    "fixed_parameters": ['min_sum_hessian_in_leaf'],
+                    "tune_hyperparameters": tune_hyperparams,
+                },
 
-# US_STATES = ['CA']
+                # Vanilla (our) variant
+                {
+                    "name": MCBOOST_NAME,
+                    "feature_type": FEATURE_TYPE_FEATURES,
+                    "unshrink": True,
+                    "encode_categorical_variables": True,
+                    "num_rounds": 10,
+                    "lightgbm_params": None,
+                    "early_stopping": True,
+                    "tune_hyperparameters": tune_hyperparams,
+                },
+
+                # Our variant with group features
+                {
+                    "name": MCBOOST_NAME + '_group_features',
+                    "feature_type": FEATURE_TYPE_GROUPS,
+                    "unshrink": True,
+                    "encode_categorical_variables": True,
+                    "num_rounds": 30,
+                    "lightgbm_params": None,
+                    "early_stopping": True,
+                    "tune_hyperparameters": tune_hyperparams,
+                },
+
+                # Unshrink ablation
+                {
+                    "name": MCBOOST_NAME + '_unshrink_ablation',
+                    "feature_type": FEATURE_TYPE_FEATURES,
+                    "unshrink": False,
+                    "encode_categorical_variables": True,
+                    "num_rounds": 10,
+                    "lightgbm_params": None,
+                    "early_stopping": True,
+                    "tune_hyperparameters": tune_hyperparams,
+                },
+
+                # One round ablation
+                {
+                    "name": MCBOOST_NAME + '_one_round_ablation',
+                    "feature_type": FEATURE_TYPE_FEATURES,
+                    "unshrink": True,
+                    "encode_categorical_variables": True,
+                    "num_rounds": 1,
+                    "lightgbm_params": None,
+                    "early_stopping": False,
+                    "tune_hyperparameters": tune_hyperparams,
+                },
+
+                # Jin et al. Variant
+                {
+                    "name": 'DFMC',
+                    "feature_type": FEATURE_TYPE_GROUPS,
+                    "unshrink": False,
+                    "encode_categorical_variables": True,
+                    "num_rounds": 1,
+                    "lightgbm_params": {'max_depth': 2},
+                    "early_stopping": False,
+                    "tune_hyperparameters": tune_hyperparams,
+                }
+            ],
+        }
+
+
 US_STATES = [
     # https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States#States.
     "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "IA",
