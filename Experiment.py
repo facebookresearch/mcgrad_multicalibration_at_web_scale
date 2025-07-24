@@ -23,6 +23,7 @@ class Experiment:
     SEED_KEY = 'seed'
     FIT_TIME_KEY = 'fit_time'
     NUM_ROUNDS_KEY = 'num_rounds'
+    LIGHTGBM_PARAMS_KEY = 'lightgbm_params'
 
     def __init__(self, dataset, model, calib_frac, calib_train_overlap=0, calib_seed=50):
         '''
@@ -41,7 +42,8 @@ class Experiment:
         self.mcb_models = []
         self.logger = None
         self.wandb = False
-        self.results_storage_path = f"mc_industry_results/"
+        self.results_storage_path = f"mc_industry_results/tuned/"
+        # self.results_storage_path = f"mc_industry_results/"
 
         if (self.calib_frac > 0 or self.calib_train_overlap > 0):
             (
@@ -60,7 +62,7 @@ class Experiment:
             self.X_train, self.y_train, self.groups_train = self.dataset.X_train, self.dataset.y_train, self.dataset.groups_train
         
         self.X_test, self.y_test, self.groups_test = self.dataset.X_test, self.dataset.y_test, self.dataset.groups_test
-        self.X_val, self.y_val, self.groups_val = self.dataset.X_val, self.dataset.y_val, self.dataset.groups_val
+        self.X_val, self.y_val, self.groups_val, self.df_val = self.dataset.X_val, self.dataset.y_val, self.dataset.groups_val, self.dataset.df_val
 
         # Print a nicely formatted table with 
         # train, calibration, validation, and test split sizes
@@ -123,15 +125,21 @@ class Experiment:
                      labels=self.y_calib, 
                      subgroups=self.groups_calib)
         elif alg_type == MCBOOST_NAME:
+            confs_val, logits_val = self.model.predict_proba(self.X_val, with_logits=True)
             mcbp.fit(
                 confs=logits_calib,
+                confs_val=confs_val,
                 labels=self.y_calib,
+                labels_val=self.y_val,
                 subgroups=self.groups_calib,
+                subgroups_val=self.groups_val,
                 df=self.df_calib,
+                df_val=self.df_val,
                 categorical_features=self.dataset.categorical_features,
                 numerical_features=self.dataset.numerical_features,
             )
             model_properties_to_track[self.NUM_ROUNDS_KEY] = len(mcbp.mcbp.mcboost.mr)
+            model_properties_to_track[self.LIGHTGBM_PARAMS_KEY] = mcbp.mcbp.mcboost.lightgbm_params
         else:
             mcbp.fit(confs=confs_calib,
                     labels=self.y_calib, 
@@ -172,6 +180,7 @@ class Experiment:
         seed = data[self.SEED_KEY]
         fit_time = data[self.FIT_TIME_KEY]
         num_rounds = data[self.NUM_ROUNDS_KEY]
+        lightgbm_params = data[self.LIGHTGBM_PARAMS_KEY]
 
         # Extract group entries (filter out non-integer keys)
         group_rows = [
@@ -183,6 +192,7 @@ class Experiment:
                 self.SEED_KEY: seed,
                 self.FIT_TIME_KEY: fit_time,
                 self.NUM_ROUNDS_KEY: num_rounds,
+                self.LIGHTGBM_PARAMS_KEY: lightgbm_params,
                 **v
             }
             for k, v in data.items() if isinstance(k, int) or k in ['max', 'min', 'mean', 'agg']
@@ -229,6 +239,7 @@ class Experiment:
         original_model_metrics_val[self.SEED_KEY] = self.dataset.val_split_seed
         original_model_metrics_val[self.FIT_TIME_KEY] = np.nan
         original_model_metrics_val[self.NUM_ROUNDS_KEY] = np.nan
+        original_model_metrics_val[self.LIGHTGBM_PARAMS_KEY] = np.nan
         all_metrics = [original_model_metrics_val]
 
         # reliability diagram
@@ -294,6 +305,7 @@ class Experiment:
             mcb_metrics[self.SEED_KEY] = self.dataset.val_split_seed
             mcb_metrics[self.FIT_TIME_KEY] = mcb_properties.get(self.FIT_TIME_KEY, np.nan)
             mcb_metrics[self.NUM_ROUNDS_KEY] = mcb_properties.get(self.NUM_ROUNDS_KEY, np.nan)
+            mcb_metrics[self.LIGHTGBM_PARAMS_KEY] = mcb_properties.get(self.LIGHTGBM_PARAMS_KEY, np.nan)
             all_metrics.append(mcb_metrics)
 
             # reliability diagram
@@ -317,7 +329,7 @@ class Experiment:
             return
 
         # init variables
-        self.wandb = True
+        # self.wandb = True
         log_config = {
             **config,
             'dataset': self.dataset.name,

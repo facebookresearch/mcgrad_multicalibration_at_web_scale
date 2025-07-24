@@ -18,18 +18,18 @@ HKRR_DEFAULT = [
     {
         "type": "HKRR",
         "params": [
-            # {
-            #     "lambda": 0.1,
-            #     "alpha": 0.1,
-            # },
-            # {
-            #     'lambda': 0.1,
-            #     'alpha': 0.05,
-            # },
-            # {
-            #     'lambda': 0.1,
-            #     'alpha': 0.025,
-            # },
+            {
+                "lambda": 0.1,
+                "alpha": 0.1,
+            },
+            {
+                'lambda': 0.1,
+                'alpha': 0.05,
+            },
+            {
+                'lambda': 0.1,
+                'alpha': 0.025,
+            },
             {
                 'lambda': 0.1,
                 'alpha': 0.0125,
@@ -102,128 +102,82 @@ FEATURE_TYPE_FEATURES = 'features'
 
 # collect all mcb algorithsm
 # MCB_DEFAULT = HKRR_DEFAULT + HJZ_DEFAULT + CALIB_ALGS_DEFAULT
+TUNE_MCB_HYPERPARAMS = True
 CASMCBOOST_DEFAULT = [
     {
         "type": MCBOOST_NAME,
         "params": [
-            # Our variant
+            # Min_sum_hessian=0 ablation
             {
+                "name": MCBOOST_NAME + '_msh_0_ablation',
                 "feature_type": FEATURE_TYPE_FEATURES,
                 "unshrink": True,
                 "encode_categorical_variables": True,
-                "monotone_t": None,
-                "num_rounds": 100,
+                "num_rounds": 10,
+                "lightgbm_params": {'min_sum_hessian_in_leaf': 0},
+                "early_stopping": True,
+                "fixed_parameters": ['min_sum_hessian_in_leaf'],
+                "tune_hyperparameters": TUNE_MCB_HYPERPARAMS,
+            },
+
+            # Vanilla (our) variant
+            {
+                "name": MCBOOST_NAME,
+                "feature_type": FEATURE_TYPE_FEATURES,
+                "unshrink": True,
+                "encode_categorical_variables": True,
+                "num_rounds": 10,
                 "lightgbm_params": None,
                 "early_stopping": True,
-                "patience": 0,
-                "early_stopping_score_func": None,
-                "early_stopping_minimize_score": None,
-                "early_stopping_timeout": 8 * 60 * 60,
-                "save_training_performance": False,
-                "monitored_metrics_during_training": None,
-                "weight_column_name": None,
-                "categorical_feature_column_names": None,
-                "numerical_feature_column_names": None,
+                "tune_hyperparameters": TUNE_MCB_HYPERPARAMS,
             },
 
             # Our variant with group features
             {
+                "name": MCBOOST_NAME + '_group_features',
                 "feature_type": FEATURE_TYPE_GROUPS,
                 "unshrink": True,
                 "encode_categorical_variables": True,
-                "monotone_t": None,
-                "num_rounds": 100,
+                "num_rounds": 10,
                 "lightgbm_params": None,
                 "early_stopping": True,
-                "patience": 0,
-                "early_stopping_score_func": None,
-                "early_stopping_minimize_score": None,
-                "early_stopping_timeout": 8 * 60 * 60,
-                "save_training_performance": False,
-                "monitored_metrics_during_training": None,
-                "weight_column_name": None,
-                "categorical_feature_column_names": None,
-                "numerical_feature_column_names": None,
+                "tune_hyperparameters": TUNE_MCB_HYPERPARAMS,
             },
 
             # Unshrink ablation
             {
+                "name": MCBOOST_NAME + '_unshrink_ablation',
                 "feature_type": FEATURE_TYPE_FEATURES,
                 "unshrink": False,
                 "encode_categorical_variables": True,
-                "monotone_t": None,
-                "num_rounds": 100,
+                "num_rounds": 10,
                 "lightgbm_params": None,
                 "early_stopping": True,
-                "patience": 0,
-                "early_stopping_score_func": None,
-                "early_stopping_minimize_score": None,
-                "early_stopping_timeout": 8 * 60 * 60,
-                "save_training_performance": False,
-                "monitored_metrics_during_training": None,
-                "weight_column_name": None,
-                "categorical_feature_column_names": None,
-                "numerical_feature_column_names": None,
+                "tune_hyperparameters": TUNE_MCB_HYPERPARAMS,
             },
 
             # One round ablation
             {
+                "name": MCBOOST_NAME + '_one_round_ablation',
                 "feature_type": FEATURE_TYPE_FEATURES,
                 "unshrink": True,
                 "encode_categorical_variables": True,
-                "monotone_t": None,
                 "num_rounds": 1,
                 "lightgbm_params": None,
                 "early_stopping": False,
-                "patience": 0,
-                "early_stopping_score_func": None,
-                "early_stopping_minimize_score": None,
-                "early_stopping_timeout": 8 * 60 * 60,
-                "save_training_performance": False,
-                "monitored_metrics_during_training": None,
-                "weight_column_name": None,
-                "categorical_feature_column_names": None,
-                "numerical_feature_column_names": None,
-            },
-
-            # Min_sum_hessian=20 ablation
-            {
-                "feature_type": FEATURE_TYPE_FEATURES,
-                "unshrink": True,
-                "encode_categorical_variables": True,
-                "monotone_t": None,
-                "num_rounds": 100,
-                "lightgbm_params": {'min_sum_hessian_in_leaf': 20},
-                "early_stopping": True,
-                "patience": 0,
-                "early_stopping_score_func": None,
-                "early_stopping_minimize_score": None,
-                "early_stopping_timeout": 8 * 60 * 60,
-                "save_training_performance": False,
-                "monitored_metrics_during_training": None,
-                "weight_column_name": None,
-                "categorical_feature_column_names": None,
-                "numerical_feature_column_names": None,
+                "tune_hyperparameters": TUNE_MCB_HYPERPARAMS,
             },
 
             # Jin et al. Variant
             {
+                "name": 'DFMCBoost',
                 "feature_type": FEATURE_TYPE_GROUPS,
                 "unshrink": False,
                 "encode_categorical_variables": True,
-                "monotone_t": None,
                 "num_rounds": 1,
                 "lightgbm_params": {'max_depth': 2},
                 "early_stopping": False,
-                "patience": 0,
-                "early_stopping_score_func": None,
-                "early_stopping_minimize_score": None,
-                "early_stopping_timeout": 8 * 60 * 60,
-                "save_training_performance": False,
-                "monitored_metrics_during_training": None,
-                "weight_column_name": None,
-                "categorical_feature_column_names": None,
-                "numerical_feature_column_names": None,
+                "tune_hyperparameters": TUNE_MCB_HYPERPARAMS,
             }
         ],
     }

@@ -5,6 +5,7 @@ import lightgbm as lgb
 from configs.constants import FEATURE_TYPE_GROUPS, FEATURE_TYPE_FEATURES
 import logging
 from .methods import MCBoost
+from .tuning import tune_mcboost_params, default_parameter_configurations
 
 
 logger = logging.getLogger(__name__)
@@ -58,26 +59,31 @@ class CASMCBoostAlgorithm:
             raise ValueError("Invalid feature type")
         self.feature_type = params["feature_type"]
         self.unshrink = params["unshrink"]
+        self.tune_hyperparameters = params.get("tune_hyperparameters", True)
+        # Fix some hyperparameters to be excluded from tuning
+        self.fixed_parameters = params.get("fixed_parameters", [])
+        self.tuning_parameter_space = [
+            config for config in default_parameter_configurations if config.name not in self.fixed_parameters
+        ]
+
+        logger.info(f"Tuning hyperparameters {[c.name for c in self.tuning_parameter_space]}")
 
         mcb_cls = MCBoost if self.unshrink else MCBoostNoUnshrink
 
         self.mcboost = mcb_cls(
             encode_categorical_variables=params["encode_categorical_variables"] or True,
-            monotone_t=params["monotone_t"] or None,
-            num_rounds=params["num_rounds"] or 100,
-            lightgbm_params=params["lightgbm_params"] or None,
-            early_stopping=params["early_stopping"] or None,
-            patience=params["patience"] or None,
-            early_stopping_score_func=params["early_stopping_score_func"] or None,
-            early_stopping_minimize_score=params["early_stopping_minimize_score"]
-            or None,
-            early_stopping_timeout=params["early_stopping_timeout"] or 8 * 60 * 60,
-            save_training_performance=params["save_training_performance"] or False,
-            monitored_metrics_during_training=params[
-                "monitored_metrics_during_training"
-            ]
-            or None,
+            monotone_t=params.get("monotone_t", None),
+            num_rounds=params.get("num_rounds", 10),
+            lightgbm_params=params.get('lightgbm_params', None),
+            early_stopping=params.get("early_stopping", None),
+            patience=params.get("patience", None),
+            early_stopping_score_func=params.get("early_stopping_score_func", None),
+            early_stopping_minimize_score=params.get("early_stopping_minimize_score", None),
+            early_stopping_timeout=params.get("early_stopping_timeout", 8 * 60 * 60),
+            save_training_performance=params.get("save_training_performance", False),
+            monitored_metrics_during_training=params.get("monitored_metrics_during_training", None),
         )
+
 
     def _groups_to_dataframe(self, subgroups, n) -> pd.DataFrame:
         print(f"Groups to dataframe: {n}")
@@ -97,27 +103,55 @@ class CASMCBoostAlgorithm:
         # Return as DataFrame
         return pd.DataFrame(data, columns=col_names)
 
-    def fit(self, confs, labels, subgroups, df=None, categorical_features=None, numerical_features=None) -> None:
+    def fit(self, confs, labels, subgroups, confs_val=None, labels_val=None, subgroups_val=None, df=None, df_val=None,
+            categorical_features=None, numerical_features=None) -> None:
 
-        if self.feature_type == FEATURE_TYPE_GROUPS:
-            print("fitting with groups features")
-            fit_df = self._groups_to_dataframe(subgroups, len(labels))
-            categorical_features = list(fit_df.columns)
-            numerical_features = []
+        if not self.tune_hyperparameters:
+            if self.feature_type == FEATURE_TYPE_GROUPS:
+                fit_df = self._groups_to_dataframe(subgroups, len(labels))
+                categorical_features = list(fit_df.columns)
+                numerical_features = []
+            else:
+                fit_df = df.copy()
+
+            fit_df['precali_scores'] = confs[:, 1]
+            fit_df['label'] = labels
+
+            self.mcboost.fit(
+                df_train=fit_df,
+                prediction_column_name="precali_scores",
+                label_column_name="label",
+                categorical_feature_column_names=categorical_features,
+                numerical_feature_column_names=numerical_features,
+            )
         else:
-            print("fitting with features features")
-            fit_df = df.copy()
+            if self.feature_type == FEATURE_TYPE_GROUPS:
+                print("fitting with groups features")
+                fit_df = self._groups_to_dataframe(subgroups, len(labels))
+                val_df = self._groups_to_dataframe(subgroups_val, len(labels_val))
+                categorical_features = list(fit_df.columns)
+                numerical_features = []
+            else:
+                print("fitting with features features")
+                fit_df = df.copy()
+                val_df = df_val.copy()
 
-        fit_df['precali_scores'] = confs[:, 1]
-        fit_df['label'] = labels
+            fit_df['precali_scores'] = confs[:, 1]
+            fit_df['label'] = labels
+            val_df['precali_scores'] = confs_val
+            val_df['label'] = labels_val
 
-        self.mcboost.fit(
-            df_train=fit_df,
-            prediction_column_name="precali_scores",
-            label_column_name="label",
-            categorical_feature_column_names=categorical_features,
-            numerical_feature_column_names=numerical_features,
-        )
+            best_model, _ = tune_mcboost_params(
+                model=self.mcboost,
+                df_train=fit_df,
+                df_val=val_df,
+                prediction_column_name="precali_scores",
+                label_column_name="label",
+                categorical_feature_column_names=categorical_features,
+                numerical_feature_column_names=numerical_features,
+                parameter_configurations=self.tuning_parameter_space,
+            )
+            self.mcboost = best_model
 
     def batch_predict(self, f_xs, groups, df=None, categorical_features=None, numerical_features=None) -> npt.NDArray:
         if self.feature_type == FEATURE_TYPE_GROUPS:

@@ -16,15 +16,14 @@ from typing import Any, cast, Dict, Generic, TypeVar
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
+from . import utils
+from .metrics import ScoreFunctionInterface, wrap_sklearn_metric_func
 from numpy import typing as npt
 from sklearn import isotonic, metrics as skmetrics
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import KBinsDiscretizer, OneHotEncoder
 from typing_extensions import Self
-
-from . import utils
-from .metrics import ScoreFunctionInterface, wrap_sklearn_metric_func
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -290,7 +289,9 @@ class MCBoost(BaseCalibrator):
         self.N_FOLDS: int = (
             1  # Because we make a single train/test split when using holdout
             if (self.EARLY_STOPPING_ESTIMATION_METHOD == EstimationMethod.HOLDOUT)
-            else self.DEFAULT_HYPERPARAMS["n_folds"] if n_folds is None else n_folds
+            else self.DEFAULT_HYPERPARAMS["n_folds"]
+            if n_folds is None
+            else n_folds
         )
 
         self.mr: list[lgb.Booster] = []
@@ -333,17 +334,21 @@ class MCBoost(BaseCalibrator):
         except AttributeError:
             pass
 
-        lightgbm_params = (
-            self.DEFAULT_HYPERPARAMS["lightgbm_params"] | dict(lightgbm_params)
-            if lightgbm_params is not None
-            else self.DEFAULT_HYPERPARAMS["lightgbm_params"]
-        )
+        # Start with defaults if this is the first time setting params
+        if not hasattr(self, "lightgbm_params"):
+            params_to_set = self.DEFAULT_HYPERPARAMS["lightgbm_params"].copy()
+        else:
+            params_to_set = self.lightgbm_params.copy()
+
+        if lightgbm_params is not None:
+            params_to_set.update(lightgbm_params)
+
         assert (
-            "num_rounds" not in lightgbm_params
+            "num_rounds" not in params_to_set
         ), "avoid using `num_rounds` in `lightgbm_params` due to a naming conflict with `num_rounds` in MCBoost. Use any of the other aliases instead (https://lightgbm.readthedocs.io/en/latest/Parameters.html)"
 
         self.lightgbm_params: dict[str, Any] = {
-            **lightgbm_params,
+            **params_to_set,
             "objective": "binary",
             "seed": 42,
             "deterministic": True,
@@ -777,11 +782,13 @@ class MCBoost(BaseCalibrator):
         start_time = time.time()
 
         while num_rounds <= self.NUM_ROUNDS and patience_counter <= self.PATIENCE:
-            if self.EARLY_STOPPING_TIMEOUT is not None and self._get_elapsed_time(
-                start_time
-            ) > cast(
-                int, self.EARLY_STOPPING_TIMEOUT
-            ):  # Cast is needed to prevent code-verification issues
+            if (
+                self.EARLY_STOPPING_TIMEOUT is not None
+                and self._get_elapsed_time(start_time)
+                > cast(
+                    int, self.EARLY_STOPPING_TIMEOUT
+                )  # Cast is needed to prevent code-verification issues
+            ):
                 logger.warn(
                     f"Stopping cross-validation upon exceeding the {self.EARLY_STOPPING_TIMEOUT:,}-second timeout; "
                     + "MCBoost results will likely improve by increasing `early_stopping_timeout` or setting it to None"

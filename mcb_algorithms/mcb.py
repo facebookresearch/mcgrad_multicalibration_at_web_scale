@@ -35,7 +35,8 @@ class MulticalibrationPredictor:
         else:
             raise ValueError(f"Algorithm {algorithm} not supported")
 
-    def fit(self, confs, labels, subgroups, df=None, categorical_features=None, numerical_features=None):
+    def fit(self, confs, labels, subgroups, confs_val=None, labels_val=None, subgroups_val=None, df_val=None, df=None,
+            categorical_features=None, numerical_features=None):
         """
         Returns vector of confidences on calibration set.
 
@@ -49,7 +50,9 @@ class MulticalibrationPredictor:
         """
         # Only pass df parameter to algorithms that support it (currently only CASMCBoost)
         if self.algorithm == MCBOOST_NAME:
-            self.mcbp.fit(confs, labels, subgroups, df, categorical_features=categorical_features, numerical_features=numerical_features)
+            self.mcbp.fit(confs=confs, labels=labels, subgroups=subgroups, df=df, confs_val=confs_val,
+                          labels_val=labels_val, subgroups_val=subgroups_val, df_val=df_val,
+                          categorical_features=categorical_features, numerical_features=numerical_features)
         else:
             self.mcbp.fit(confs, labels, subgroups)
 
