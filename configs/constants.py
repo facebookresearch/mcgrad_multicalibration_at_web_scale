@@ -114,7 +114,7 @@ MCB_TEST = [{"type": MCBOOST_NAME, "params": [            # Jin et al. Variant
             }]}]
 
 def get_mcgrad_configs(tune_hyperparams: bool = False):
-    return {
+    return [{
             "type": MCBOOST_NAME,
             "params": [
                 # Min_sum_hessian ablation
@@ -191,7 +191,7 @@ def get_mcgrad_configs(tune_hyperparams: bool = False):
                     "tune_hyperparameters": tune_hyperparams,
                 }
             ],
-        }
+        }]
 
 
 US_STATES = [
