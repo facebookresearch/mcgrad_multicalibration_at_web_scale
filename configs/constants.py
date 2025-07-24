@@ -117,14 +117,15 @@ def get_mcgrad_configs(tune_hyperparams: bool = False):
     return {
             "type": MCBOOST_NAME,
             "params": [
-                # Min_sum_hessian=20 ablation
+                # Min_sum_hessian ablation
+                # IF we tune hyperparams we set it explicitly to 0 if not the default is zero so we set it to 20. Hacky
                 {
-                    "name": MCBOOST_NAME + '_msh_0_ablation',
+                    "name": MCBOOST_NAME + '_msh_' + str(0) if tune_hyperparams else str(20),
                     "feature_type": FEATURE_TYPE_FEATURES,
                     "unshrink": True,
                     "encode_categorical_variables": True,
                     "num_rounds": 10,
-                    "lightgbm_params": {'min_sum_hessian_in_leaf': 20},
+                    "lightgbm_params": {'min_sum_hessian_in_leaf': 0 if tune_hyperparams else 20},
                     "early_stopping": True,
                     "fixed_parameters": ['min_sum_hessian_in_leaf'],
                     "tune_hyperparameters": tune_hyperparams,
@@ -156,7 +157,7 @@ def get_mcgrad_configs(tune_hyperparams: bool = False):
 
                 # Unshrink ablation
                 {
-                    "name": MCBOOST_NAME + '_unshrink_ablation',
+                    "name": MCBOOST_NAME + '_no_unshrink',
                     "feature_type": FEATURE_TYPE_FEATURES,
                     "unshrink": False,
                     "encode_categorical_variables": True,
@@ -168,7 +169,7 @@ def get_mcgrad_configs(tune_hyperparams: bool = False):
 
                 # One round ablation
                 {
-                    "name": MCBOOST_NAME + '_one_round_ablation',
+                    "name": MCBOOST_NAME + '_one_round',
                     "feature_type": FEATURE_TYPE_FEATURES,
                     "unshrink": True,
                     "encode_categorical_variables": True,
