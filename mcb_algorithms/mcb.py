@@ -30,7 +30,7 @@ class MulticalibrationPredictor:
             self.mcbp = TemperatureScaling(params)
         elif algorithm == "Isotonic":
             self.mcbp = IsotonicRegression(params)
-        elif algorithm == "CASMCBoost":
+        elif algorithm == MCBOOST_NAME:
             self.mcbp = CASMCBoostAlgorithm(params)
         else:
             raise ValueError(f"Algorithm {algorithm} not supported")
