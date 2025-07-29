@@ -104,7 +104,7 @@ FEATURE_TYPE_FEATURES = 'features'
 MCB_TEST = [{"type": MCBOOST_NAME, "params": [            # Jin et al. Variant
             {
                 "name": 'DFMCBoost',
-                "feature_type": FEATURE_TYPE_GROUPS,
+                "feature_type": FEATURE_TYPE_FEATURES,
                 "unshrink": False,
                 "encode_categorical_variables": True,
                 "num_rounds": 10,
@@ -120,7 +120,7 @@ def get_mcgrad_configs(tune_hyperparams: bool = False):
                 # Min_sum_hessian ablation
                 # IF we tune hyperparams we set it explicitly to 0 if not the default is zero so we set it to 20. Hacky
                 {
-                    "name": MCBOOST_NAME + '_msh_' + str(0) if tune_hyperparams else str(20),
+                    "name": MCBOOST_NAME + '_msh_' + (str(0) if tune_hyperparams else str(20)),
                     "feature_type": FEATURE_TYPE_FEATURES,
                     "unshrink": True,
                     "encode_categorical_variables": True,

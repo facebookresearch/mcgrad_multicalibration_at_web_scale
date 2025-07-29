@@ -242,7 +242,7 @@ def NN_eval(model_name, dataset, calib_fracs, seeds, eval_epochs=None, no_mcb=Fa
                 if wandb: experiment.init_logger(finish=True)
 
 
-def data_reuse_experiment(model_name, dataset, seed, wandb=True, mcb_params=None):
+def data_reuse_experiment(model_name, dataset, seed, wandb=True, mcb_params=None, results_storage_path=''):
     # set constants for the experiment
     mcb_params = MCB_DEFAULT if mcb_params is None else mcb_params
     calib_frac = 0
@@ -273,7 +273,7 @@ def data_reuse_experiment(model_name, dataset, seed, wandb=True, mcb_params=None
     dataset_obj = Dataset(dataset, val_split_seed=config['val_split_seed'], groups=groups_collection)
     model = Model(model_name, config=config, SAVE_DIR=config['save_dir'])
     experiment = Experiment(dataset_obj, model, calib_frac=config['calib_frac'], 
-                            calib_train_overlap=calib_train_overlap)
+                            calib_train_overlap=calib_train_overlap, results_storage_path=results_storage_path)
     logger.info(f"Storing results at {experiment.results_storage_path}")
 
     # init logger; this saves metrics to wandb

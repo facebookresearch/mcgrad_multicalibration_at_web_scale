@@ -25,7 +25,7 @@ class Experiment:
     NUM_ROUNDS_KEY = 'num_rounds'
     LIGHTGBM_PARAMS_KEY = 'lightgbm_params'
 
-    def __init__(self, dataset, model, calib_frac, calib_train_overlap=0, calib_seed=50):
+    def __init__(self, dataset, model, calib_frac, calib_train_overlap=0, calib_seed=50, results_storage_path=''):
         '''
         Parameters
             :dataset: Dataset object
@@ -42,7 +42,7 @@ class Experiment:
         self.mcb_models = []
         self.logger = None
         self.wandb = False
-        self.results_storage_path = f"mc_industry_results/tuned/"
+        self.results_storage_path = results_storage_path
         # self.results_storage_path = f"mc_industry_results/"
 
         if (self.calib_frac > 0 or self.calib_train_overlap > 0):
