@@ -1,8 +1,7 @@
 __pycache__/
 data/
 .idea/
-mc_industry_results/
 .requirements.txt
 .DS_Store
 *.csv
-
+results/
