@@ -169,9 +169,9 @@ class Experiment:
                 categorical_features=self.dataset.categorical_features,
                 numerical_features=self.dataset.numerical_features,
             )
-            model_properties_to_track[self.NUM_ROUNDS_KEY] = len(mcbp.mcbp.mcboost.mr)
+            model_properties_to_track[self.NUM_ROUNDS_KEY] = len(mcbp.mcbp.mcgrad.mr)
             model_properties_to_track[self.LIGHTGBM_PARAMS_KEY] = (
-                mcbp.mcbp.mcboost.lightgbm_params
+                mcbp.mcbp.mcgrad.lightgbm_params
             )
         else:
             mcbp.fit(

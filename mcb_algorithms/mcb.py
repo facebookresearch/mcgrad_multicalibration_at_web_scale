@@ -2,8 +2,8 @@ from configs.constants import MCGRAD_NAME
 from mcb_algorithms.Calibration.Isotonic import IsotonicRegression
 from mcb_algorithms.Calibration.Platt import PlattScaling
 from mcb_algorithms.Calibration.Temperature import TemperatureScaling
-from mcb_algorithms.CAS.CASMCBoost import CASMCBoostAlgorithm
 from mcb_algorithms.HKRR.hkrr import HKRRAlgorithm
+from .mcgrad_wrapper import MCGradWrapper
 
 
 class MulticalibrationPredictor:
@@ -26,7 +26,7 @@ class MulticalibrationPredictor:
         elif algorithm == "Isotonic":
             self.mcbp = IsotonicRegression(params)
         elif algorithm == MCGRAD_NAME:
-            self.mcbp = CASMCBoostAlgorithm(params)
+            self.mcbp = MCGradWrapper(params)
         else:
             raise ValueError(f"Algorithm {algorithm} not supported")
 
@@ -52,9 +52,9 @@ class MulticalibrationPredictor:
             confs: Array of prediction scores
             labels: Array of true labels
             subgroups: List of subgroups
-            df: Optional dataframe with additional features (required for CASMCBoost with alltogether variant)
+            df: Optional dataframe with additional features (required for MCGradWrapper with alltogether variant)
         """
-        # Only pass df parameter to algorithms that support it (currently only CASMCBoost)
+        # Only pass df parameter to algorithms that support it (currently only MCGradWrapper)
         if self.algorithm == MCGRAD_NAME:
             self.mcbp.fit(
                 confs=confs,
@@ -81,9 +81,9 @@ class MulticalibrationPredictor:
         Parameters:
             f_xs: Array of prediction scores
             groups: List of groups
-            df: Optional dataframe with additional features (required for CASMCBoost with alltogether variant)
+            df: Optional dataframe with additional features (required for MCGradWrapper with alltogether variant)
         """
-        # Only pass df parameter to algorithms that support it (currently only CASMCBoost)
+        # Only pass df parameter to algorithms that support it (currently only MCGradWrapper)
         if self.algorithm == MCGRAD_NAME:
             return self.mcbp.batch_predict(
                 f_xs,

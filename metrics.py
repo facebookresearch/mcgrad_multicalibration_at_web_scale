@@ -1,9 +1,6 @@
 # pyre-ignore all
 import numpy as np
-from mcb_algorithms.CAS.metrics import (
-    kuiper_calibration_per_segment,
-    MulticalibrationError,
-)
+from multicalibration.metrics import kuiper_calibration_per_segment, MulticalibrationError
 from relplot import smECE as _smECE
 from sklearn import metrics as skmetrics
 

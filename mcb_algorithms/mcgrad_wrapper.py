@@ -4,18 +4,18 @@ import pandas as pd
 import lightgbm as lgb
 from configs.constants import FEATURE_TYPE_GROUPS, FEATURE_TYPE_FEATURES
 import logging
-from .methods import MCBoost
-from .tuning import tune_mcboost_params, default_parameter_configurations
+from multicalibration.methods import MCGrad
+from multicalibration.tuning import tune_mcgrad_params, default_parameter_configurations
 
 
 logger = logging.getLogger(__name__)
 
-class MCBoostNoUnshrink(MCBoost):
+class MCGradNoUnshrink(MCGrad):
     def _fit_single_round(
         self,
         x: npt.NDArray,
         y: npt.NDArray,
-        logits: npt.NDArray,
+        prediction: npt.NDArray,
         w: npt.NDArray | None,
         categorical_feature_column_names: list[str] | None = None,
         numerical_feature_column_names: list[str] | None = None,
@@ -23,7 +23,7 @@ class MCBoostNoUnshrink(MCBoost):
         """
         This is a patch of the original fit function that omits the unshrink step
         """
-        x = np.c_[x, logits]
+        x = np.c_[x, prediction]
 
         if categorical_feature_column_names is None:
             categorical_feature_column_names = []
@@ -32,27 +32,28 @@ class MCBoostNoUnshrink(MCBoost):
 
         self.mr.append(
             lgb.train(
-                params=self.get_lgbm_params(x),
+                params=self._get_lgbm_params(x),
                 train_set=lgb.Dataset(
                     x,
                     label=y,
-                    init_score=logits,
+                    init_score=prediction,
                     weight=w,
                     categorical_feature=categorical_feature_column_names,
                     feature_name=categorical_feature_column_names
                     + numerical_feature_column_names
-                    + ["logits"],
+                    + [self._PREDICTION_FEATURE_NAME],
                 ),
             )
         )
 
         new_pred = self.mr[-1].predict(x, raw_score=True)
+        prediction = prediction + new_pred
         self.unshrink_factors.append(1)
-        return logits + new_pred
+        prediction *= self.unshrink_factors[-1]
 
+        return prediction
 
-
-class CASMCBoostAlgorithm:
+class MCGradWrapper:
 
     def __init__(self, params) -> None:
         if params["feature_type"] not in [FEATURE_TYPE_GROUPS, FEATURE_TYPE_FEATURES]:
@@ -68,9 +69,9 @@ class CASMCBoostAlgorithm:
 
         logger.info(f"Tuning hyperparameters {[c.name for c in self.tuning_parameter_space]}")
 
-        mcb_cls = MCBoost if self.unshrink else MCBoostNoUnshrink
+        mcg_cls = MCGrad if self.unshrink else MCGradNoUnshrink
 
-        self.mcboost = mcb_cls(
+        self.mcgrad = mcg_cls(
             encode_categorical_variables=params["encode_categorical_variables"] or True,
             monotone_t=params.get("monotone_t", None),
             num_rounds=params.get("num_rounds", 10),
@@ -117,7 +118,7 @@ class CASMCBoostAlgorithm:
             fit_df['precali_scores'] = confs[:, 1]
             fit_df['label'] = labels
 
-            self.mcboost.fit(
+            self.mcgrad.fit(
                 df_train=fit_df,
                 prediction_column_name="precali_scores",
                 label_column_name="label",
@@ -141,8 +142,8 @@ class CASMCBoostAlgorithm:
             val_df['precali_scores'] = confs_val
             val_df['label'] = labels_val
 
-            best_model, _ = tune_mcboost_params(
-                model=self.mcboost,
+            best_model, _ = tune_mcgrad_params(
+                model=self.mcgrad,
                 df_train=fit_df,
                 df_val=val_df,
                 prediction_column_name="precali_scores",
@@ -151,7 +152,7 @@ class CASMCBoostAlgorithm:
                 numerical_feature_column_names=numerical_features,
                 parameter_configurations=self.tuning_parameter_space,
             )
-            self.mcboost = best_model
+            self.mcgrad = best_model
 
     def batch_predict(self, f_xs, groups, df=None, categorical_features=None, numerical_features=None) -> npt.NDArray:
         if self.feature_type == FEATURE_TYPE_GROUPS:
@@ -165,7 +166,7 @@ class CASMCBoostAlgorithm:
 
         predict_df['precali_scores'] = f_xs[:, 1]
 
-        return self.mcboost.predict(
+        return self.mcgrad.predict(
             df=predict_df,
             prediction_column_name="precali_scores",
             categorical_feature_column_names=categorical_features,
