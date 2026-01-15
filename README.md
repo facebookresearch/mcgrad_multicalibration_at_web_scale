@@ -1,10 +1,10 @@
 # Multicalibration at Web Scale - Replication Materials for Benchmark Experiments
 
-This repository contains replication materials for the benchmark experiments in the paper "Multicalibration at Web Scale" [TODO: add link to paper].
+This repository contains replication materials for the benchmark experiments in the paper ["Multicalibration at Web Scale"](https://arxiv.org/pdf/2509.19884)
 
 ## How to run
 
-The code is written in Python 3.8. To run the code, you need to install the dependencies in the `requirements.txt` file. You can do this by running the following command in the root directory of the repository:
+The was tested with python 3.12, you need to install the dependencies in the `requirements.txt` file. You can do this by running the following command in the root directory of the repository:
 
 ```
 pip install -r requirements.txt
@@ -18,11 +18,6 @@ python run_experiments.py
 
 By default, results will be store in `results/`.
 
-To generate plots and tables, run:
-
-```bash
-[TODO]
-```
 
 ## Acknowledgement
 
