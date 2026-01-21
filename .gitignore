@@ -1,0 +1,7 @@
+__pycache__/
+data/
+.idea/
+.requirements.txt
+.DS_Store
+*.csv
+results/
