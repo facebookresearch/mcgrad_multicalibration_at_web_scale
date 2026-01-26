@@ -98,7 +98,7 @@ urllib3==2.6.3
 wadler_lindig==0.1.7
 wcwidth==0.2.14
 wget==3.2
-wheel==0.45.1
+wheel==0.46.2
 widgetsnbextension==4.0.15
 wrapt==2.0.1
 xlrd==2.0.2
