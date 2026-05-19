@@ -23,7 +23,7 @@ gpytorch==1.15
 graphemeu==0.7.2
 hf-xet==1.2.0
 huggingface-hub==0.36.0
-idna==3.11
+idna==3.15
 imbalanced-learn==0.14.1
 ipython==9.9.0
 ipython_pygments_lexers==1.1.1
